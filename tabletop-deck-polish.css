@@ -1,9 +1,43 @@
-/* Deck-rail spacing + first-build onboarding coachmark + draggable pile placement */
-.sideDeckRail{transition:box-shadow .16s ease,opacity .16s ease,border-color .16s ease,filter .16s ease!important;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
-.sideDeckRail:hover{transform:translateY(-50%) scale(1.015)!important}
+/* Deck-rail spacing + onboarding + draggable pile placement */
+.sideDeckRail{
+  transition:box-shadow .16s ease,opacity .16s ease,border-color .16s ease,filter .16s ease!important;
+  cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;
+  width:150px;min-height:238px;padding:13px 12px 11px;
+}
+.sideDeckRail:hover{transform:translateY(-50%) scale(1.012)!important}
 .sideDeckRail.deckRailUserPositioned{transform:none!important}
-.sideDeckRail.deckRailUserPositioned:hover{transform:scale(1.015)!important}
-.sideDeckRail.deckRailDragging,.sideDeckRail.deckRailDragging:hover{cursor:grabbing!important;transform:none!important;transition:none!important;z-index:70;box-shadow:0 24px 60px rgba(0,0,0,.46),0 0 0 2px rgba(242,210,125,.28)!important}
+.sideDeckRail.deckRailUserPositioned:hover{transform:scale(1.012)!important}
+.sideDeckRail.deckRailPressed{filter:brightness(1.06)}
+.sideDeckRail.deckRailDragging,.sideDeckRail.deckRailDragging:hover{
+  cursor:grabbing!important;transform:none!important;transition:none!important;z-index:70;
+  box-shadow:0 24px 60px rgba(0,0,0,.46),0 0 0 2px rgba(242,210,125,.28)!important
+}
+body.deckRailDragActive{cursor:grabbing!important}
+body.deckRailDragActive *{cursor:grabbing!important}
+.deckDragHandle{
+  position:absolute;top:6px;right:7px;z-index:3;padding:2px 5px;border-radius:999px;
+  background:rgba(22,27,22,.44);border:1px solid rgba(239,217,167,.22);
+  color:#e9dcc0;font-size:7px;line-height:1;text-transform:uppercase;letter-spacing:.08em;
+  font-weight:900;pointer-events:none;opacity:.72
+}
+.sideDeckRail:hover .deckDragHandle,.sideDeckRail.deckRailDragging .deckDragHandle{opacity:1}
+.srOnlyDeckHelp{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+
+/* Keep deck labels tidy and prevent the footer strings from colliding. */
+.sideDeckLabel{width:100%;gap:1px;line-height:1.05}
+.sideDeckLabel b{font-size:15px!important;line-height:1.05!important;white-space:normal;text-wrap:balance}
+.sideDeckLabel strong{margin-top:4px!important;font-size:25px!important;line-height:1!important}
+.sideDeckLabel small{margin-top:4px!important;font-size:7px!important;line-height:1.2!important;letter-spacing:.07em!important;white-space:nowrap}
+.buildBookCallout{
+  position:static!important;display:inline-flex!important;align-items:center;justify-content:center;
+  margin-top:auto;padding:4px 8px;border-radius:999px;background:rgba(247,227,168,.1);
+  border:1px solid rgba(239,210,128,.28);color:#efd285!important;font-size:7px!important;
+  line-height:1!important;letter-spacing:.08em!important;font-weight:900;white-space:nowrap
+}
+.compostCount{
+  position:static!important;align-self:center;margin-top:auto;padding:4px 7px!important;
+  border-radius:999px;background:rgba(20,24,20,.5);font-size:8px!important
+}
 
 .blueprintCoach{
   display:none;position:fixed;z-index:49;width:230px;padding:11px 13px;border-radius:13px;
@@ -22,7 +56,7 @@
   filter:brightness(1.08)
 }
 .blueprintDeckRail.newPlayerGuide .blueprintStack{animation:blueprintCardNudge 1.15s ease-in-out infinite!important}
-.blueprintDeckRail.newPlayerGuide .buildBookCallout{color:#fff2a9;font-size:8px}
+.blueprintDeckRail.newPlayerGuide .buildBookCallout{color:#fff2a9!important;border-color:rgba(255,226,138,.5)}
 .blueprintDeckRail.deckRailDragging.newPlayerGuide{animation:none!important}
 @keyframes blueprintGuideGlow{
   0%,100%{box-shadow:0 18px 42px rgba(0,0,0,.32),0 0 0 2px rgba(255,224,126,.24),0 0 18px rgba(255,217,101,.26)}
@@ -31,4 +65,10 @@
 @keyframes blueprintCardNudge{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
 @keyframes coachIn{from{opacity:0;transform:translateY(5px) scale(.97)}to{opacity:1;transform:none}}
 
+@media(max-width:1499px){
+  .sideDeckRail{width:94px;min-height:184px;padding:10px 7px 8px}
+  .sideDeckLabel b{font-size:11px!important}.sideDeckLabel strong{font-size:20px!important}
+  .sideDeckLabel small,.buildBookCallout,.compostCount{display:none!important}
+  .deckDragHandle{top:4px;right:4px;font-size:6px;padding:2px 4px}
+}
 @media(max-width:1180px){.blueprintCoach{display:none!important}}
