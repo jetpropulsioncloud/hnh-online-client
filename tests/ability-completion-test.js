@@ -14,10 +14,11 @@ const resident=(key,id,musterUid,extra={})=>({...card(key,id),musterUid,damage:0
 const setupBuild=(g,pi)=>{g.started=true;g.active=pi;g.phase='Build';g.combat={attacks:[],committed:false,resolved:false};const p=g.players[pi];p.resources={acorn:9,sap:9,root:9,pebble:9,provision:9};return p;};
 const resolveFirst=(g,selection)=>{const ch=E.pendingAbilityChoice(g);assert(ch,'expected pending choice');const r=E.resolveAbilityChoice(g,ch.playerIndex,ch.id,String(selection));assert(r.ok,r.reason);return ch;};
 
-ok('data completion matches latest Stocked Squirrel Armory and clears stale manual labels',()=>{
+ok('data completion matches latest editable Stocked Squirrel Armory and clears stale manual labels',()=>{
   const stocked=D.AS.blueprints.find(b=>b.id==='stocked_squirrel_armory');
-  assert(stocked.text.includes('Squirrels housed here get +1 💪'));
-  assert.equal(stocked.upgradeGain,undefined);
+  assert(stocked.text.includes('When you upgrade to this, gain 📦'));
+  assert.equal(stocked.upgradeGain.provision,1);
+  assert.equal(stocked.squirrelMightBonus,undefined);
   assert.equal(D.AS.blueprints.find(b=>b.id==='great_clover_hearthring').subtype,'Defense');
   assert.equal(D.RP.blueprints.find(b=>b.id==='hearthroot_tree').subtype,'Utility');
   const automated=['shared_satchel','hide_in_ferns','sap_bandage'];
@@ -42,12 +43,13 @@ ok('Bramble Climbing Kit gives Eager and permits attacking the recruit turn',()=
   const c=card('AS','squirrel_raider'),tool=card('AS','bramble_climbing_kit');p.hand.push(c,tool);assert(E.recruit(g,0,c.uid,m.uid).ok);const r=p.residents.find(x=>x.uid===c.uid);assert.equal(E.canAttack(g,0,r),false);assert(E.playTool(g,0,tool.uid,r.uid).ok);assert(E.canAttack(g,0,r),'Eager carrier should be attack-ready');assert(E.declareAttack(g,0,r.uid,'hearthseed').ok);
 });
 
-ok('Stocked Squirrel Armory gives housed Squirrels +1 Might',()=>{
-  const g=fresh(),p=setupBuild(g,0);const m=building('AS','stocked_squirrel_armory');p.village.push(m);const r=resident('AS','squirrel_raider',m.uid);p.residents.push(r);E.refreshAbilityMarkers(g);assert.equal(E.residentMight(r,{kind:'building'}),3,'1 base +1 Raider vs Building +1 Stocked Squirrel');
-});
-
-ok('Stocked Squirrel Armory Might bonus applies to blocker combat damage too',()=>{
-  const g=fresh();setupBuild(g,1);const atkP=g.players[1],defP=g.players[0];const am=building('RP','rabbit_warren'),dm=building('AS','stocked_squirrel_armory');atkP.village.push(am);defP.village.push(dm);const atk=resident('RP','rootling_mole',am.uid),block=resident('AS','squirrel_raider',dm.uid);atkP.residents.push(atk);defP.residents.push(block);E.refreshAbilityMarkers(g);g.phase='Attack';assert(E.declareAttack(g,1,atk.uid,'hearthseed').ok);assert(E.commitAttacks(g,1).ok);assert(E.assignBlock(g,0,block.uid,0).ok);assert(E.resolveCombat(g).ok);assert.equal(atk.damage,2,'Stocked Squirrel should counter for 2 Might');
+ok('Stocked Squirrel Armory grants one Provision when upgraded and no static Might bonus',()=>{
+  const g=fresh(),p=setupBuild(g,0),start=p.resources.provision;
+  assert(E.build(g,0,'squirrel_armory').ok);
+  assert(E.build(g,0,'stocked_squirrel_armory').ok);
+  assert.equal(p.resources.provision,start+1,'upgrade should gain exactly one Provision');
+  const m=p.village.find(b=>b.id==='stocked_squirrel_armory'),r=resident('AS','squirrel_raider',m.uid);p.residents.push(r);E.refreshAbilityMarkers(g);
+  assert.equal(E.residentMight(r,{kind:'building'}),2,'Stocked Armory should not add a static Might bonus in the latest editable set');
 });
 
 ok('Lantern Scout Nook shows top two Field Deck cards and lets player choose top/bottom order',()=>{

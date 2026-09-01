@@ -41,3 +41,10 @@ node tests/ui-coordinator-test.js
 ```
 
 GitHub Actions runs the same gates on pull requests and pushes to `main`.
+
+
+## Solo AI difficulty
+
+Solo setup now explains each starter deck's play style and offers three AI profiles. Beginner is the default: it pauses longer between actions, takes fewer Build actions, and sends fewer attackers so first-time players can see the opponent's turn unfold. Standard restores a normal tempo, while Hard acts faster and uses the full action/attack caps.
+
+Card-display wording is checked against the latest editable starter-card source while v0.6.2 rulebook rules remain authoritative when older card-layout text conflicts with the rules chassis.
