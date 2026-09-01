@@ -5,14 +5,14 @@ const html=fs.readFileSync('index.html','utf8');
 const client=fs.readFileSync('client.js','utf8');
 const styles=fs.readFileSync('styles.css','utf8');
 
-assert(html.includes('styles.css?v=077'),'styles.css must be the single stylesheet');
-assert(html.includes('data.js?v=077')&&html.includes('engine.js?v=077')&&html.includes('client.js?v=077'),'consolidated runtime files are not wired');
+assert(html.includes('styles.css?v=078'),'styles.css must be the single stylesheet');
+assert(html.includes('data.js?v=078')&&html.includes('engine.js?v=078')&&html.includes('client.js?v=078'),'consolidated runtime files are not wired');
 assert((html.match(/<script src=/g)||[]).length===3,'index.html should load exactly three runtime scripts');
 assert((html.match(/rel="stylesheet"/g)||[]).length===1,'index.html should load exactly one stylesheet');
 assert(client.includes('CoordinatedMutationObserver'),'coordinated observer shim missing from consolidated client');
 assert(client.includes('appObservers'),'single app observer registry missing');
-assert(client.includes("version:'0.7.7'"),'coordinator version missing');
-assert(html.includes('Tabletop Client v0.7.7'),'presentation version not bumped');
+assert(client.includes("version:'0.7.8'"),'coordinator version missing');
+assert(html.includes('Tabletop Client v0.7.8'),'presentation version not bumped');
 
 const retired=[
   'client-v062.js','ui-coordinator.js','tabletop-interactions.js','tabletop-deck-polish.js','social-links.js','ability-ui.js',
@@ -22,26 +22,25 @@ const retired=[
 ];
 for(const file of retired)assert(!fs.existsSync(file),`${file} should be retired after consolidation`);
 
-
 assert(client.includes("beginner:{label:'Beginner',skill:'beginner'"),'Beginner AI skill profile missing');
-assert(client.includes('Fast, scrappy pressure'),'Porchlight archetype onboarding copy missing');
-assert(client.includes('Sturdy, recursive defense'),'Stonecap archetype onboarding copy missing');
+assert(client.includes('Fast & scrappy'),'Hazel archetype onboarding copy missing');
+assert(client.includes('Sturdy & recursive'),'Mosswick archetype onboarding copy missing');
 assert(client.includes('AI harvests ${RLABEL[choice]}'),'AI action narration missing');
-
-console.log('✓ runtime is consolidated to data.js + engine.js + client.js + styles.css');
-console.log('✓ UI observer coordination survived consolidation');
-
-assert(client.includes('Beginner — forgiving priorities'),'beginner AI should be defined by decision quality');
-assert(client.includes('AI Pace'),'AI pace should be separate from difficulty');
+assert(client.includes('<option value="beginner" selected>Beginner</option>'),'simple Beginner label missing');
+assert(client.includes('<option value="standard">Standard</option>'),'simple Standard label missing');
+assert(client.includes('<option value="hard">Hard</option>'),'simple Hard label missing');
+assert(!client.includes('forgiving priorities')&&!client.includes('sensible priorities')&&!client.includes('sharp priorities'),'priority copy should not appear in setup');
+assert(!client.includes('AI Pace')&&!client.includes('aiPace'),'AI pace control/state should be removed');
 assert(client.includes('View Hearthkeeper card'),'Hearthkeeper reference access missing');
-console.log('✓ Hearthkeeper identity and AI skill/pacing controls');
-
-assert(client.includes('AI Pace'),'AI pace should be separate from difficulty');
-assert(client.includes('View Hearthkeeper card'),'Hearthkeeper reference access missing');
-console.log('✓ Hearthkeeper identity and AI skill/pacing controls');
 
 assert(client.includes('buildWallet')&&client.includes('YOUR RESOURCES'),'Build Book must show the active player resource wallet');
 assert(styles.includes('.buildWallet'),'Build Book resource wallet styling missing');
-assert(client.includes('Hearthstep tabletop fidget')&&client.includes('hearthstepTrail'),'Hearthstep fidget runtime missing');
-assert(styles.includes('.hearthstepTrail')&&styles.includes('@keyframes hearthstepHop'),'Hearthstep fidget styling/animation missing');
-console.log('✓ Build Book resource wallet and Hearthstep fidget');
+assert(client.includes('tableFidgets')&&client.includes('fidgetAcorn')&&client.includes('fidgetMushroom'),'ambient table fidgets missing');
+assert(styles.includes('.tableFidget')&&styles.includes('@keyframes tableFidgetBounce'),'ambient fidget styling/animation missing');
+assert(!client.includes('hearthstepTrail')&&!styles.includes('.hearthstepTrail'),'old Hearthstep bar should be retired');
+assert(client.includes('compactTrial'),'compact Frost Trial ribbon missing');
+assert(!client.includes('trialDivider'),'duplicate Frost Trial divider should not render');
+
+console.log('✓ runtime consolidation and observer coordination');
+console.log('✓ simple Hearthkeeper + AI difficulty setup');
+console.log('✓ Build Book wallet, ambient fidgets, and compact Frost Trial');
