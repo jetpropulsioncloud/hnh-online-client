@@ -12,7 +12,6 @@ button,select{font:inherit}.app{max-width:1500px;margin:auto;padding:18px}.topba
 @media(max-width:680px){.resourceChoices{grid-template-columns:1fr}.resLabel{display:none}.dragHint{display:none}}
 @media(prefers-reduced-motion:reduce){.gainBurst,.resourcePulse{animation:none}}
 
-
 /* v0.3 solo AI pass */
 .setupActions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.aiChoice{border-color:#9aa88f;background:#edf1e7}.aiBadge{display:inline-flex;align-items:center;gap:5px;padding:5px 9px;border-radius:999px;background:#e4eadf;border:1px solid #a8b59e;color:#40513c;font-size:11px;font-weight:900;letter-spacing:.03em}.aiTurnPanel{border-style:dashed}.aiThinking{display:flex;align-items:center;gap:10px;padding:6px}.aiThinking h3{margin:0 0 3px}.aiDot{width:12px;height:12px;border-radius:50%;background:var(--green);animation:aiThink 1s ease-in-out infinite}.aiCombat{border-color:#9aa88f;background:#e8edde}.aiChoiceOverlay .choiceCard{max-width:400px}.opponentPanel .dragHint{display:none}@keyframes aiThink{0%,100%{transform:scale(.75);opacity:.45}50%{transform:scale(1.18);opacity:1}}@media(prefers-reduced-motion:reduce){.aiDot{animation:none}}
 
@@ -113,3 +112,8 @@ button,select{font:inherit}.app{max-width:1500px;margin:auto;padding:18px}.topba
   .blueprintFullCard{min-height:300px}
 }
 @media(prefers-reduced-motion:reduce){.handCard.recruitReady{animation:none}}
+
+/* v0.5.0 — Hearth & Hollow rules v0.6.2 */
+.shieldBadge{display:inline-flex;align-items:center;gap:3px;margin:3px 0 2px;padding:2px 6px;border-radius:999px;background:#e3edf0;border:1px solid #a6bcc2;color:#365963;font-size:9px;font-weight:900;letter-spacing:.02em}
+.resourceRule{margin-top:5px;font-size:9px;color:var(--muted)}
+.advancedTag{display:inline-block;padding:1px 5px;border-radius:999px;background:#f1e5bd;border:1px solid #d4b96c;color:#70551b;font-size:9px;font-weight:900}
