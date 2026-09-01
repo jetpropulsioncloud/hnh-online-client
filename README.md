@@ -1,39 +1,56 @@
-# Hearth & Hollow — Client Beta v0.4.0
+# Hearth & Hollow — Client Beta v0.5.0
 
-A zero-install, client-side prototype for **Hearth & Hollow v0.6.1 — Village Muster**.
+A zero-install, client-side prototype for **Hearth & Hollow rules v0.6.2**.
 
 ## Run it
 
-1. Unzip the folder.
-2. Double-click `index.html`.
+1. Download or clone the repository.
+2. Open `index.html` in a modern desktop browser.
 3. Choose **Porchlight** or **Stonecap**.
-4. The AI automatically pilots the other starter village.
+4. The AI pilots the other starter village, or choose hot-seat two-player.
 
-No server, Node.js, Steam, TTS, or Screentop account is required.
+No server, Node.js, Steam, TTS, or Screentop account is required to play. Node.js is only needed for the optional smoke test.
 
-## New in v0.4.0 — Board Architecture
+## v0.5.0 — v0.6.2 rules migration
 
-- **Dedicated Field + Village zones.** Critters now occupy a separate Field row. The Village contains Buildings only.
-- **Mirrored battlefield.** Opponent Village → Opponent Field → Frost Trial → Your Field → Your Village, so combatants face each other while infrastructure sits behind them.
-- **Muster links without card clutter.** Muster Buildings still show Housing and resident names, but full Critter cards live in the Field.
-- **Home highlighting.** Hover a Field Critter to highlight its Muster; hover a Muster to highlight its residents.
-- **Recruit-ready cue.** A Critter in your hand gets a subtle green glow and `✓ Recruitable` badge only when a compatible active Muster has Housing and you can pay the recruit cost.
-- **Drag guidance remains.** While dragging a Critter, legal Musters highlight green, accepting-but-unavailable Musters amber, and incompatible Musters dim.
-- **Collapsible Blueprint Deck.** The Blueprint menu can be folded away to give the battlefield more space.
-- **Full Blueprint card preview.** Hover, focus, or click a Blueprint row to inspect a larger card-style view with its full cost, Durability, Prosperity, Housing, Accepts/Recruit text, and rules text.
-- **Finite Blueprints remain enforced.** Each of the 12 starter Blueprints is single-use; used entries remain marked `USED`.
+The client now follows the promoted v0.6.2 rules chassis:
 
-## Carried forward
+- 45-card Field Decks: 33 Critters + 12 Supports.
+- 12-card unshuffled, known Blueprint Deck.
+- Founding Building starts separately; Village size is unlimited.
+- Opening hand is 7, with an optional free partial mulligan.
+- Fair four-result setup determines the round-1 opener and round-2 leader; initiative alternates by round from there.
+- Six Muster Classes replace role-tag recruitment: **Scurry, Lantern, Bramble, Handwork, Gatewatch, Burrow**.
+- Critter cards no longer have Housing values. Every Critter occupies exactly **1 Housing** in its Muster.
+- **Advanced** Critters require an upgraded matching Muster. The current Advanced starters are Juniper Jay, Briarhart Siege Stag, and Clem Cedarhorn.
+- **Provision** remains its own resource, but each Provision cost slot may instead be paid by one Acorn, Sap, Root, or Pebble.
+- **Shield** prevents the entire next single damage instance to a Critter or Building, then is removed.
+- Ruined Muster residents become inactive and must be rehoused at the end of their controller's next turn; unmatched residents return to hand.
+- First Yield, Guard attack readiness, blocking without tiring, persistent Building damage, Rest cleanup, Prosperity, Exposed Hearthseed, Tool Access, Reaction Access, and Peaceful limits follow v0.6.2.
+- Hearthkeepers are flavor/reference only in this rules version.
 
-- Fixed solo POV: AI stays on top, you stay on bottom.
-- Choose Porchlight or Stonecap; the AI takes the other starter.
-- Dawn and Harvest auto-resolve into Build.
-- Harvest / First Yield resource gains display visual `+1` feedback.
-- Newly recruited Critters may block immediately but cannot attack that turn unless they have Eager.
-- Drag Critters to Musters, Tools to Critters, Blueprints to the Village, and attack-ready Critters to enemy targets.
-- AI handles its own economy, building, recruiting, attacks, and automatic blocking; when it attacks, you choose blockers.
-- Hot-seat mode remains available.
+## Board/client features carried forward
 
-## AI / rules limitations
+- Fixed solo point of view: AI on top, player on bottom.
+- Dedicated Field and Village zones.
+- Drag Critters to matching Musters, Tools to Critters, Blueprints to the Village, and attack-ready Critters to enemy targets.
+- Recruit-ready highlighting and Muster/home linking.
+- Collapsible Blueprint drawer with full-card preview.
+- AI economy, building, recruiting, attacking, and automatic blocking.
+- Hot-seat mode.
 
-The AI is still a playtest bot rather than a competitive opponent. Timing-heavy Reactions and several manual/incomplete v0.6.1 card effects are intentionally not guessed.
+## Current manual card-effect limitations
+
+The v0.6.2 **system rules** above are wired into the client. A few timing-heavy individual card effects remain intentionally manual rather than guessed, including some Reactions, prevention triggers, Compost manipulation, and certain Muster/Tool bonuses. The UI labels those effects as `Manual`.
+
+The client is still a local playtest prototype, not an authoritative networked multiplayer server.
+
+## Smoke test
+
+If Node.js is installed:
+
+```bash
+node smoke-test.js
+```
+
+The smoke test checks deck counts, Blueprint counts, Muster Class coverage, the 1-Housing data model, and the current Advanced roster.
