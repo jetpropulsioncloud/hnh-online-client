@@ -44,3 +44,10 @@ assert(!client.includes('trialDivider'),'duplicate Frost Trial divider should no
 console.log('✓ runtime consolidation and observer coordination');
 console.log('✓ simple Hearthkeeper + AI difficulty setup');
 console.log('✓ Build Book wallet, ambient fidgets, and compact Frost Trial');
+
+assert(!client.includes('aiPace'),'AI pace state should be removed');
+assert(!client.includes('forgiving priorities')&&!client.includes('sensible priorities')&&!client.includes('sharp priorities'),'difficulty labels should stay simple');
+assert(client.includes('<option value=\"beginner\" selected>Beginner</option>')&&client.includes('<option value=\"standard\">Standard</option>')&&client.includes('<option value=\"hard\">Hard</option>'),'simple AI difficulty choices missing');
+assert(client.includes('tableFidgets')&&!client.includes('hearthstepTrail'),'ambient table fidgets should replace the Hearthstep bar');
+assert(!client.includes('trialDivider'),'duplicate Frost Trial divider should be removed from render');
+console.log('✓ setup declutter, ambient fidgets, and compact Frost Trial');

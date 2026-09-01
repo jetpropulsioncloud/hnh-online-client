@@ -253,23 +253,9 @@ body:has(.cardInspector.pinned) .sideDeckRail{
 .buildWallet .resourceChip{min-width:52px;background:#fff9e8;box-shadow:inset 0 1px #fff,0 1px 3px rgba(47,41,30,.08)}
 .buildWallet .resourceChip span{font-size:18px}.buildWallet .resourceChip b{font-size:15px}
 
-/* ===== Hearthstep fidget ===== */
-.hearthstepTrail{position:fixed;left:50%;bottom:246px;z-index:34;width:286px;transform:translate(-50%,10px);opacity:0;pointer-events:none;transition:opacity .18s ease,transform .18s ease;filter:drop-shadow(0 5px 8px rgba(24,24,19,.2))}
-.hearthstepTrail.visible{opacity:.88;transform:translate(-50%,0);pointer-events:auto}
-.hearthstepTrail:hover,.hearthstepTrail:focus-within{opacity:1}
-.hearthstepTitle{display:flex;justify-content:center;align-items:baseline;gap:6px;margin-bottom:3px;color:#efe6d0;text-shadow:0 1px 2px rgba(0,0,0,.45)}
-.hearthstepTitle b{font:800 10px Georgia,serif;letter-spacing:.04em}.hearthstepTitle small{font-size:7px;opacity:.72}
-.hearthstepCourse{position:relative;height:42px;border:1px solid rgba(231,218,187,.22);border-radius:999px;background:rgba(43,48,39,.62);backdrop-filter:blur(4px);box-shadow:inset 0 1px rgba(255,255,255,.05);display:grid;grid-template-columns:repeat(4,1fr);align-items:center;padding:0 18px}
-.hearthstepCourse::before{content:'';position:absolute;left:36px;right:36px;top:50%;border-top:1px dashed rgba(225,211,175,.22)}
-.hearthstepStep{position:relative;z-index:1;justify-self:center;width:30px;height:30px;padding:0;border-radius:50%;display:grid;place-items:center;background:rgba(245,235,211,.12);border:1px solid rgba(238,222,186,.18);font-size:16px;box-shadow:none;filter:none;transition:transform .12s ease,background .12s ease}
-.hearthstepStep:hover:not(:disabled){transform:translateY(-2px) scale(1.05);filter:none;background:rgba(245,235,211,.2)}
-.hearthstepStep.landed{background:rgba(219,203,162,.18)}
-.hearthstepStep.tap{animation:hearthstepPad .28s ease}
-.hearthstepAcorn{position:absolute;z-index:3;left:0;top:0;transform:translate(-50%,-50%);font-size:21px;line-height:1;cursor:grab;user-select:none;touch-action:none;filter:drop-shadow(0 2px 1px rgba(0,0,0,.3));outline:none}
-.hearthstepAcorn:focus-visible{border-radius:50%;box-shadow:0 0 0 2px #f5e2a8}
-.hearthstepAcorn.dragging{cursor:grabbing;transform:translate(-50%,-50%) scale(1.1)}
-.hearthstepAcorn.hop{animation:hearthstepHop .34s cubic-bezier(.2,.8,.2,1)}
-@keyframes hearthstepHop{0%{transform:translate(-50%,-50%) scale(1)}42%{transform:translate(-50%,-95%) scale(1.08,.92)}72%{transform:translate(-50%,-56%) scale(.95,1.06)}100%{transform:translate(-50%,-50%) scale(1)}}
-@keyframes hearthstepPad{0%,100%{transform:scale(1)}50%{transform:scale(.88)}}
-@media (max-width:760px){.hearthstepTrail{width:238px;bottom:232px}.hearthstepCourse{padding:0 10px}.hearthstepTitle small{display:none}}
-@media (max-height:700px){.hearthstepTrail{bottom:205px;transform:translate(-50%,10px) scale(.9);transform-origin:bottom center}.hearthstepTrail.visible{transform:translate(-50%,0) scale(.9)}}
+
+/* ===== v0.7.8 setup declutter + ambient table fidgets ===== */
+.setupCard{width:min(720px,100%);padding:26px 28px}.setupCard h1{font-size:42px}.setupSeal{width:54px;height:54px;font-size:25px}.lead{margin:8px auto 12px;font-size:12px}.setupPrompt{margin:12px 0 7px}.factionGrid{margin:9px 0 10px}.factionChoice{padding:12px 13px;gap:9px}.factionChoice .bigIcon{font-size:25px}.factionChoice b{font-size:16px}.factionChoice small{font-size:8px;margin-top:1px}.deckArchetype{margin-top:2px;font-size:10px}.deckExplain{display:none}.aiDifficultyBox{max-width:420px;margin:9px auto 8px;padding:8px 10px}.aiDifficultyBox label{grid-template-columns:105px minmax(170px,1fr);gap:8px}.aiDifficultyBox select{min-width:0;padding:6px 8px}.aiDifficultyBox small{display:none}
+.combatRibbon.quiet.compactTrial{width:max-content;max-width:72%;margin:4px auto;padding:5px 10px;gap:6px}.combatRibbon.quiet.compactTrial b{font-size:10px}.combatRibbon.quiet.compactTrial small{font-size:7px}.trialDivider{display:none}
+.tableFidgets{position:absolute;inset:0;z-index:3;pointer-events:none;overflow:hidden;border-radius:22px}.tableFidget{position:absolute;pointer-events:auto;width:27px;height:27px;padding:0;display:grid;place-items:center;border:0;border-radius:50%;background:rgba(246,238,220,.08);color:inherit;font-size:17px;line-height:1;box-shadow:none;opacity:.58;filter:saturate(.9);transition:opacity .12s ease,transform .12s ease,background .12s ease}.tableFidget:hover:not(:disabled){opacity:1;filter:none;background:rgba(246,238,220,.16);transform:scale(1.12)}.fidgetAcorn{left:7px;top:27%}.fidgetLeaf{right:8px;top:39%;transform:rotate(-18deg)}.fidgetPebble{left:8px;bottom:22%}.fidgetMushroom{right:7px;bottom:12%}.tableFidget.fidgetPop[data-fidget="bounce"]{animation:tableFidgetBounce .46s ease}.tableFidget.fidgetPop[data-fidget="spin"]{animation:tableFidgetSpin .48s ease}.tableFidget.fidgetPop[data-fidget="wiggle"]{animation:tableFidgetWiggle .42s ease}.tableFidget.fidgetPop[data-fidget="squish"]{animation:tableFidgetSquish .42s ease}@keyframes tableFidgetBounce{0%,100%{transform:translateY(0) scale(1)}42%{transform:translateY(-12px) scale(1.08,.94)}70%{transform:translateY(1px) scale(.94,1.06)}}@keyframes tableFidgetSpin{0%{transform:rotate(-18deg)}70%{transform:rotate(310deg) scale(1.14)}100%{transform:rotate(342deg)}}@keyframes tableFidgetWiggle{0%,100%{transform:rotate(0)}25%{transform:rotate(-13deg)}55%{transform:rotate(11deg)}75%{transform:rotate(-6deg)}}@keyframes tableFidgetSquish{0%,100%{transform:scale(1)}45%{transform:scale(1.18,.76)}70%{transform:scale(.92,1.08)}}
+@media(max-width:780px){.setupCard{padding:22px 18px}.setupCard h1{font-size:36px}.aiDifficultyBox label{grid-template-columns:1fr}.tableFidget{width:24px;height:24px;font-size:15px}.combatRibbon.quiet.compactTrial{max-width:92%}}
