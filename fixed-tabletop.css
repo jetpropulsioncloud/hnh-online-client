@@ -1,0 +1,103 @@
+/* Hearth & Hollow fixed-screen tabletop shell — Client v0.6.8
+   The browser viewport itself never scrolls during a match. The board gets its
+   own contained scroll region only when a smaller display truly needs it. */
+
+html,body{
+  width:100%;
+  height:100%;
+  overflow:hidden!important;
+  overscroll-behavior:none;
+}
+body{min-height:0!important}
+#app{
+  width:100%;
+  height:100dvh;
+  overflow:hidden;
+}
+
+/* Setup remains usable on short screens without making the browser page move. */
+.setupShell{
+  width:100%;
+  height:100%;
+  overflow:auto;
+  overscroll-behavior:contain;
+}
+
+/* Match = a fixed tabletop: header, board window, hand. */
+.client{
+  width:min(1580px,100%);
+  max-width:1580px;
+  height:100dvh;
+  max-height:100dvh;
+  margin:0 auto;
+  padding:6px 14px 0;
+  display:grid;
+  grid-template-rows:auto minmax(0,1fr) auto;
+  gap:6px;
+  overflow:hidden;
+}
+
+.tableTopbar{
+  position:relative!important;
+  top:auto!important;
+  margin:0;
+  flex:0 0 auto;
+}
+
+/* The mat stays in one physical screen location. If the viewport is too short,
+   only this middle board window can scroll; the browser and hand do not. */
+.tableSurface{
+  min-height:0;
+  max-height:100%;
+  margin:0 auto!important;
+  overflow-x:hidden;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  scrollbar-width:thin;
+  scrollbar-color:rgba(214,196,151,.55) rgba(36,43,34,.25);
+}
+.tableSurface::-webkit-scrollbar{width:8px}
+.tableSurface::-webkit-scrollbar-track{background:rgba(36,43,34,.25);border-radius:999px}
+.tableSurface::-webkit-scrollbar-thumb{background:rgba(214,196,151,.55);border-radius:999px}
+
+/* The hand is a permanent bottom rail rather than a page-sticky element. */
+.handDock{
+  position:relative!important;
+  bottom:auto!important;
+  margin:0 auto!important;
+  width:100%;
+  min-height:0;
+  flex:0 0 auto;
+}
+.handRow{overscroll-behavior-x:contain}
+
+/* Drawers/panels should scroll inside themselves, never move the page. */
+.drawer,.drawerBody,.buildBook,.rulesDrawer,.logDrawer{
+  overscroll-behavior:contain;
+}
+
+/* Prevent touch/browser pan gestures on the play surface while preserving
+   horizontal scrolling inside card lanes and the hand. */
+.tableSurface{touch-action:pan-y}
+.buildingGrid,.critterRow,.handRow{touch-action:pan-x}
+.sideDeckRail{touch-action:none}
+
+/* Short laptop screens: reclaim a little vertical room while keeping all major
+   UI regions fixed in place. */
+@media (max-height:820px){
+  .client{padding-top:4px;gap:4px}
+  .tableTopbar{padding-top:7px!important;padding-bottom:7px!important}
+  .tableSurface{padding-top:10px!important;padding-bottom:10px!important}
+  .handDock{padding-top:6px!important}
+  .handCard{height:204px!important}
+  .handCard .artWindow{height:52px!important}
+}
+
+@media (max-height:700px){
+  .brand{font-size:18px!important}
+  .brandBlock>span{font-size:8px!important}
+  .phasePip{padding:4px 7px!important}
+  .handCard{height:184px!important;flex-basis:160px!important}
+  .handCard .artWindow{height:44px!important}
+  .handCard .cardFrame{padding:6px!important}
+}
