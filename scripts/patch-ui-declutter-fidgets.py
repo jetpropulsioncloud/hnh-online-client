@@ -60,7 +60,6 @@ client=must_replace(client,
 "    drawer:name=>{drawer=name;render();},\n    fidget:el=>{if(!el)return;el.classList.remove('fidgetPop');void el.offsetWidth;el.classList.add('fidgetPop');setTimeout(()=>el.classList.remove('fidgetPop'),520);},",
 'UI fidget action')
 
-# Retire the labeled Hearthstep bar entirely; the fidgets now live directly on the mat.
 client,n=re.subn(r"\n\n/\* ===== Hearthstep tabletop fidget ===== \*/.*\Z","",client,flags=re.S)
 if n!=1: raise SystemExit('old Hearthstep block not removed')
 
@@ -81,13 +80,14 @@ styles += r'''
 '''
 styles_path.write_text(styles)
 
-# Bump cache/presentation strings and adjust UI regression expectations.
 for path in [Path('index.html'),Path('tests/smoke-test.js'),Path('tests/ui-coordinator-test.js')]:
     text=path.read_text().replace('v0.7.7','v0.7.8').replace('v=077','v=078')
     path.write_text(text)
 
 ui_path=Path('tests/ui-coordinator-test.js')
 ui=ui_path.read_text()
+ui=ui.replace("assert(client.includes('Fast, scrappy pressure'),'Porchlight archetype onboarding copy missing');","assert(client.includes('Fast & scrappy'),'Hazel archetype onboarding copy missing');")
+ui=ui.replace("assert(client.includes('Sturdy, recursive defense'),'Stonecap archetype onboarding copy missing');","assert(client.includes('Sturdy & recursive'),'Mosswick archetype onboarding copy missing');")
 ui=ui.replace("assert(client.includes('AI Pace'),'AI pace should be separate from difficulty');","assert(!client.includes('AI Pace'),'AI pace control should be removed from setup');")
 ui += "\nassert(!client.includes('aiPace'),'AI pace state should be removed');\nassert(!client.includes('forgiving priorities')&&!client.includes('sensible priorities')&&!client.includes('sharp priorities'),'difficulty labels should stay simple');\nassert(client.includes('<option value=\\\"beginner\\\" selected>Beginner</option>')&&client.includes('<option value=\\\"standard\\\">Standard</option>')&&client.includes('<option value=\\\"hard\\\">Hard</option>'),'simple AI difficulty choices missing');\nassert(client.includes('tableFidgets')&&!client.includes('hearthstepTrail'),'ambient table fidgets should replace the Hearthstep bar');\nassert(!client.includes('trialDivider'),'duplicate Frost Trial divider should be removed from render');\nconsole.log('✓ setup declutter, ambient fidgets, and compact Frost Trial');\n"
 ui_path.write_text(ui)
