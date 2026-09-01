@@ -201,9 +201,18 @@
     if(b.peaceful)return '🌿';if(b.muster)return '🏠';if(b.production)return '🧺';if(b.repairAbility)return '🛠';if(b.reactionAccess)return '🛡';if(b.toolAccess)return '🧰';return '🏡';
   }
 
+  function musterClassSlug(value){return String(value||'muster').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');}
+  function musterRulesText(b){
+    const text=String(b.text||'');
+    if(!b.muster)return text;
+    return text.replace(/^Muster\s*[—-]\s*[^.]+\.\s*Recruit:\s*pay\s*[^.]+\.\s*/i,'').trim();
+  }
+
   function buildingCard(p,pi,b){
     const ruined=E.isRuined(b),used=b.muster?E.housingUsed(p,b.uid):0;
-    return `<article class="gameCard building ${ruined?'ruined':''}" data-building-uid="${b.uid}" data-player-index="${pi}" ${b.muster?`data-muster-uid="${b.uid}"`:''} data-attack-building="${b.uid}"><div class="artWindow buildingArt"><span>${buildingIcon(b)}</span><small>${esc(b.subtype)}</small></div><div class="cardFrame"><div class="cardTop"><div><b>${esc(b.name)}</b><small>${ruined?'RUINED · ':''}${esc(b.subtype)}</small></div>${b.shield?'<span class="shield">🛡</span>':''}</div><div class="badgeRow"><span>🧱 ${b.damage}/${b.durability}</span><span>✨ ${ruined?0:b.prosperity||0}</span>${b.muster?`<span>🏠 ${used}/${b.housing}</span>`:''}</div>${b.muster?`<div class="musterLine"><b>${esc(b.musterClass)}</b> Muster · Recruit ${costText(b.recruitCost)}</div>`:''}<p>${esc(b.text||'')}</p>${b.manual?`<span class="manualTag">Manual: ${esc(b.manual)}</span>`:''}${b.rehousingDueOwnTurn!==null&&ruined?'<span class="warnTag">Residents inactive · rehouse by deadline</span>':''}${workshopAction(p,pi,b)}</div></article>`;
+    const musterSlug=musterClassSlug(b.musterClass),displayText=musterRulesText(b);
+    const artLabel=b.muster?b.musterClass:b.subtype;
+    return `<article class="gameCard building ${ruined?'ruined':''}" data-building-uid="${b.uid}" data-player-index="${pi}" ${b.muster?`data-muster-uid="${b.uid}" data-muster-class="${musterSlug}"`:''} data-attack-building="${b.uid}"><div class="artWindow buildingArt"><span>${buildingIcon(b)}</span><small>${esc(artLabel)}</small></div><div class="cardFrame"><div class="cardTop"><div><b>${esc(b.name)}</b>${!b.muster?`<small>${ruined?'RUINED · ':''}${esc(b.subtype)}</small>`:ruined?'<small>RUINED</small>':''}</div>${b.shield?'<span class="shield">🛡</span>':''}</div><div class="badgeRow"><span>🧱 ${b.damage}/${b.durability}</span><span>✨ ${ruined?0:b.prosperity||0}</span>${b.muster?`<span>🏠 ${used}/${b.housing}</span>`:''}</div>${b.muster?`<div class="musterIdentity muster-${musterSlug}"><strong>${esc(b.musterClass)}</strong><small>Muster · Recruit ${costText(b.recruitCost)}</small></div>`:''}${displayText?`<p>${esc(displayText)}</p>`:''}${b.manual?`<span class="manualTag">Manual: ${esc(b.manual)}</span>`:''}${b.rehousingDueOwnTurn!==null&&ruined?'<span class="warnTag">Residents inactive · rehouse by deadline</span>':''}${workshopAction(p,pi,b)}</div></article>`;
   }
 
   function workshopAction(p,pi,b){
@@ -227,7 +236,12 @@
   function critterCard(p,pi,r){
     const ready=E.residentReady(game,p,r),grit=E.residentGrit(game,p,r,r.blocking),fresh=r.recruitedTurn===game.turnNo&&pi===game.active;
     const canDragAttack=pi===game.active&&isHuman(pi)&&E.canAttack(game,pi,r);
-    return `<article class="gameCard critter ${!ready?'inactive':''} ${r.tired?'tired':''} ${r.attacking?'attacking':''} ${r.blocking?'blocking':''} ${canDragAttack?'attackDraggable':''}" data-resident-uid="${r.uid}" ${canDragAttack?'title="Drag this Critter to an enemy target"':''}><div class="artWindow critterArt"><span>${critterIcon(r)}</span><small>${r.advanced?'ADVANCED · ':''}${(r.musterClasses||[]).join(' · ')}</small></div><div class="cardFrame"><div class="cardTop"><b>${esc(r.name)}</b>${r.shield?'<span class="shield">🛡</span>':''}</div><div class="badgeRow critterStats"><span>💪 ${r.might}</span><span>❤️ ${r.damage}/${grit}</span></div><div class="homeLine">🏡 ${esc(p.village.find(b=>b.uid===r.musterUid)?.name||'No home')}</div>${r.tool?`<div class="toolLine">🧰 ${esc(r.tool.name)}</div>`:''}${fresh?'<span class="freshTag">New · can block</span>':''}${canDragAttack?'<span class="dragHint attackHint">Drag to attack</span>':''}</div></article>`;
+    const defenderIndex=1-game.active;
+    const legalBlockIndices=game.phase==='Block'&&pi===defenderIndex&&isHuman(pi)?game.combat.attacks.map((a,i)=>E.canBlock(game,pi,r,a)?i:null).filter(i=>i!==null):[];
+    const canDragBlock=legalBlockIndices.length>0;
+    const directClass=canDragBlock?' blockDraggable':canDragAttack?' attackDraggable':'';
+    const directAttrs=canDragBlock?` data-block-indices="${legalBlockIndices.join(',')}" title="Drag this Critter onto an attacker to block"`:canDragAttack?' title="Drag this Critter to an enemy target"':'';
+    return `<article class="gameCard critter ${!ready?'inactive':''} ${r.tired?'tired':''} ${r.attacking?'attacking':''} ${r.blocking?'blocking':''}${directClass}" data-resident-uid="${r.uid}" data-player-index="${pi}"${directAttrs}><div class="artWindow critterArt"><span>${critterIcon(r)}</span><small>${r.advanced?'ADVANCED · ':''}${(r.musterClasses||[]).join(' · ')}</small></div><div class="cardFrame"><div class="cardTop"><b>${esc(r.name)}</b>${r.shield?'<span class="shield">🛡</span>':''}</div><div class="badgeRow critterStats"><span>💪 ${r.might}</span><span>❤️ ${r.damage}/${grit}</span></div><div class="homeLine">🏡 ${esc(p.village.find(b=>b.uid===r.musterUid)?.name||'No home')}</div>${r.tool?`<div class="toolLine">🧰 ${esc(r.tool.name)}</div>`:''}${fresh?'<span class="freshTag">New · can block</span>':''}${canDragBlock?'<span class="dragHint blockHint">Drag onto attacker</span>':canDragAttack?'<span class="dragHint attackHint">Drag to attack</span>':''}</div></article>`;
   }
 
   function handPanel(){
@@ -291,17 +305,12 @@
 
   function combatPanel(){
     if(!game.combat.attacks.length&&game.phase!=='Block')return `<section class="combatRibbon quiet compactTrial"><span>⚔</span><b>Frost Trial</b><small>Drag a ready Critter to an enemy target.</small></section>`;
-    const attacker=game.players[game.active],defIndex=1-game.active,defender=game.players[defIndex];
-    const humanDefender=isHuman(defIndex),humanAttacker=isHuman(game.active),canResolve=game.phase==='Block'&&(humanAttacker||humanDefender);
-    if(!game.combat.committed&&humanAttacker){
-      const n=game.combat.attacks.length;
-      return `<section class="combatRibbon activeCombat combatDraft"><div class="combatHeading"><span>⚔</span><div><b>${n} attacker${n===1?'':'s'} ready</b><small>Drag another Critter or commit the whole attack.</small></div></div><div class="combatButtons"><button class="primaryBtn" onclick="UI.commitAttacks()">Commit attack${n>1?` (${n})`:''}</button></div></section>`;
-    }
-    return `<section class="combatRibbon activeCombat"><div class="combatHeading"><span>⚔</span><div><b>${game.combat.committed?'Block & React':'Declare Attackers'}</b><small>${game.combat.committed?'Attack committed · respond before damage':'Choose all attackers before committing'}</small></div></div><div class="attackList">${game.combat.attacks.map((a,i)=>{
-      const atk=attacker.residents.find(r=>r.uid===a.attackerUid),blk=defender.residents.find(r=>r.uid===a.blockerUid);
-      const blockers=game.phase==='Block'&&humanDefender&&!blk?defender.residents.filter(r=>E.canBlock(game,defIndex,r,a)):[];
-      return `<div class="attackEntry"><div><b>${esc(atk?.name||'Attacker')}</b><span>→ ${a.target.kind==='hearthseed'?'🔥 Hearthseed':esc(a.target.name)}</span>${a.zeroDamage?'<small>Rootsnared · deals 0</small>':''}${blk?`<small>Blocked by ${esc(blk.name)}</small>`:''}</div>${blockers.length?`<div class="miniAction"><select id="blk-${i}">${blockers.map(r=>`<option value="${r.uid}">${esc(r.name)}</option>`).join('')}</select><button onclick="UI.block(${i})">Block</button></div>`:''}</div>`;
-    }).join('')}</div><div class="combatButtons">${canResolve?'<button class="primaryBtn" onclick="UI.resolveCombat()">Resolve combat</button>':''}</div>${game.phase==='Block'?reactionTray(humanIndex()):''}</section>`;
+    const defIndex=1-game.active,humanDefender=isHuman(defIndex),humanAttacker=isHuman(game.active);
+    if(!game.combat.committed&&humanAttacker){const n=game.combat.attacks.length;return `<section class="combatRibbon activeCombat combatDraft"><div class="combatHeading"><span>⚔</span><div><b>${n} attacker${n===1?'':'s'} ready</b><small>Orange arrows show every declared attack. Drag more Critters or commit.</small></div></div><div class="combatButtons"><button class="primaryBtn" onclick="UI.commitAttacks()">Commit attack${n>1?` (${n})`:''}</button></div></section>`;}
+    const blocks=game.combat.attacks.filter(a=>a.blockerUid).length;
+    const canResolve=game.phase==='Block'&&(humanAttacker||humanDefender);
+    const blockHelp=humanDefender?'Drag a ready Critter onto an attacking Critter to block. Blue arrows show blocks.':`${blocks} block${blocks===1?'':'s'} assigned · blue arrows show blockers.`;
+    return `<section class="combatRibbon activeCombat compactCombat"><div class="combatHeading"><span>⚔</span><div><b>${game.combat.attacks.length} attack${game.combat.attacks.length===1?'':'s'} · ${blocks} block${blocks===1?'':'s'}</b><small>${blockHelp}</small></div></div><div class="combatButtons">${canResolve?'<button class="primaryBtn" onclick="UI.resolveCombat()">Resolve combat</button>':''}</div>${game.phase==='Block'?reactionTray(humanIndex()):''}</section>`;
   }
 
   function reactionTray(pi){
@@ -349,106 +358,39 @@
   }
 
 
-  function installDirectManipulation(){
-    const DRAG_THRESHOLD=7;
-    let gesture=null,ghost=null,arrow=null,arrowLine=null;
-
-    const clearTargets=()=>document.querySelectorAll('.directDropTarget,.directDropHover').forEach(el=>el.classList.remove('directDropTarget','directDropHover'));
-    function cleanup(){
-      clearTargets();ghost?.remove();arrow?.remove();ghost=null;arrow=null;arrowLine=null;
-      document.body.classList.remove('directManipulating');
-      gesture=null;
-    }
-    function cardGhost(source){
-      const g=source.cloneNode(true);g.classList.add('dragCardGhost');g.removeAttribute('title');
-      g.querySelectorAll('button,select').forEach(el=>el.remove());document.body.appendChild(g);return g;
-    }
-    function moveGhost(x,y){if(ghost){ghost.style.left=`${x}px`;ghost.style.top=`${y}px`;}}
-    function attackArrow(source){
-      const r=source.getBoundingClientRect();
-      const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.classList.add('dragAttackArrow');
-      svg.innerHTML='<defs><marker id="hnhAttackHead" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" /></marker></defs><line marker-end="url(#hnhAttackHead)" />';
-      document.body.appendChild(svg);const line=svg.querySelector('line');line.setAttribute('x1',String(r.left+r.width/2));line.setAttribute('y1',String(r.top+r.height/2));return {svg,line};
-    }
-    function elementTargetAt(x,y){return document.elementFromPoint(x,y);}
-    function recruitTarget(el){return el?.closest?.('[data-muster-uid]')||null;}
-    function attackTarget(el){return el?.closest?.('[data-attack-building],[data-hearthseed-player]')||null;}
-    function attackKey(el){
-      if(!el)return null;
-      if(el.hasAttribute('data-attack-building'))return `building:${el.dataset.attackBuilding}`;
-      if(el.hasAttribute('data-hearthseed-player'))return `hearthseed:${el.dataset.hearthseedPlayer}`;
-      return null;
-    }
-    function markLegal(kind,legal){
-      clearTargets();
-      if(kind==='recruit')document.querySelectorAll('[data-muster-uid]').forEach(el=>{if(legal.has(String(el.dataset.musterUid)))el.classList.add('directDropTarget');});
-      else{
-        document.querySelectorAll('[data-attack-building]').forEach(el=>{if(legal.has(`building:${el.dataset.attackBuilding}`))el.classList.add('directDropTarget');});
-        document.querySelectorAll('[data-hearthseed-player]').forEach(el=>{if(legal.has(`hearthseed:${el.dataset.hearthseedPlayer}`))el.classList.add('directDropTarget');});
-      }
-    }
-    function begin(event){
-      if(event.button!==0||event.target.closest('button,select,a'))return;
-      const recruit=event.target.closest('.recruitDraggable'),attack=event.target.closest('.attackDraggable');
-      if(!recruit&&!attack)return;
-      if(recruit){
-        const uid=+recruit.dataset.handUid,p=game.players[game.active],card=p.hand.find(c=>c.uid===uid);if(!card)return;
-        const legalMusters=E.legalMusters(game,game.active,card);if(!legalMusters.length)return;
-        gesture={kind:'recruit',uid,source:recruit,startX:event.clientX,startY:event.clientY,pointerId:event.pointerId,legal:new Set(legalMusters.map(m=>String(m.uid))),dragging:false};
-      }else{
-        const uid=+attack.dataset.residentUid,p=game.players[game.active],resident=p.residents.find(r=>r.uid===uid);if(!resident||!E.canAttack(game,game.active,resident))return;
-        const legalTargets=E.legalAttackTargets(game,game.active,resident);if(!legalTargets.length)return;
-        const opponent=1-game.active;
-        gesture={kind:'attack',uid,source:attack,startX:event.clientX,startY:event.clientY,pointerId:event.pointerId,legal:new Set(legalTargets.map(t=>t.kind==='hearthseed'?`hearthseed:${opponent}`:`building:${t.uid}`)),dragging:false};
-      }
-    }
-    function start(){
-      if(!gesture||gesture.dragging)return;gesture.dragging=true;document.body.classList.add('directManipulating');markLegal(gesture.kind,gesture.legal);
-      if(gesture.kind==='recruit'){ghost=cardGhost(gesture.source);moveGhost(gesture.startX,gesture.startY);}
-      else{const a=attackArrow(gesture.source);arrow=a.svg;arrowLine=a.line;}
-    }
-    function move(event){
-      if(!gesture||event.pointerId!==gesture.pointerId)return;
-      if(!gesture.dragging&&Math.hypot(event.clientX-gesture.startX,event.clientY-gesture.startY)<DRAG_THRESHOLD)return;
-      start();event.preventDefault();
-      document.querySelectorAll('.directDropHover').forEach(el=>el.classList.remove('directDropHover'));
-      const under=elementTargetAt(event.clientX,event.clientY);
-      if(gesture.kind==='recruit'){
-        moveGhost(event.clientX,event.clientY);const target=recruitTarget(under);if(target&&gesture.legal.has(String(target.dataset.musterUid)))target.classList.add('directDropHover');
-      }else{
-        const target=attackTarget(under),valid=target&&gesture.legal.has(attackKey(target));
-        arrowLine?.setAttribute('x2',String(event.clientX));arrowLine?.setAttribute('y2',String(event.clientY));arrow?.classList.toggle('valid',Boolean(valid));if(valid)target.classList.add('directDropHover');
-      }
-    }
-    function finish(event){
-      if(!gesture||event.pointerId!==gesture.pointerId)return;
-      const g=gesture;
-      if(!g.dragging){cleanup();return;}
-      event.preventDefault();const under=elementTargetAt(event.clientX,event.clientY);
-      if(g.kind==='recruit'){
-        const target=recruitTarget(under),musterUid=target?.dataset?.musterUid;
-        if(target&&g.legal.has(String(musterUid))){cleanup();doAction(()=>E.recruit(game,game.active,g.uid,+musterUid));return;}
-      }else{
-        const target=attackTarget(under),key=attackKey(target);
-        if(target&&g.legal.has(key)){
-          const targetArg=key.startsWith('hearthseed:')?'hearthseed':+target.dataset.attackBuilding;
-          cleanup();doAction(()=>E.declareAttack(game,game.active,g.uid,targetArg));return;
-        }
-      }
-      cleanup();
-    }
-    document.addEventListener('pointerdown',begin,true);
-    document.addEventListener('pointermove',move,{capture:true,passive:false});
-    document.addEventListener('pointerup',finish,true);
-    document.addEventListener('pointercancel',cleanup,true);
-    window.addEventListener('blur',cleanup);
+  const combatLinks=document.createElementNS('http://www.w3.org/2000/svg','svg');
+  combatLinks.classList.add('combatLinkOverlay');combatLinks.setAttribute('aria-hidden','true');document.body.appendChild(combatLinks);
+  function syncCombatArrows(){
+    if(!game||game.winner||game.combat.resolved||!game.combat.attacks.length){combatLinks.replaceChildren();return;}
+    combatLinks.innerHTML='<defs><marker id="combatAttackHead" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path class="combatAttackHead" d="M0,0 L0,6 L9,3 z" /></marker><marker id="combatBlockHead" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path class="combatBlockHead" d="M0,0 L0,6 L9,3 z" /></marker></defs>';
+    const point=el=>{const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};};
+    const curved=(a,b,cls,marker,bend)=>{const p=document.createElementNS('http://www.w3.org/2000/svg','path'),mx=(a.x+b.x)/2,my=(a.y+b.y)/2,dx=b.x-a.x,dy=b.y-a.y,len=Math.max(1,Math.hypot(dx,dy));p.setAttribute('d',`M ${a.x} ${a.y} Q ${mx+(-dy/len)*bend} ${my+(dx/len)*bend} ${b.x} ${b.y}`);p.setAttribute('class',cls);p.setAttribute('marker-end',`url(#${marker})`);combatLinks.appendChild(p);};
+    game.combat.attacks.forEach((a,i)=>{const attacker=document.querySelector(`.gameCard.critter[data-resident-uid="${a.attackerUid}"]`),target=a.target.kind==='hearthseed'?document.querySelector(`[data-hearthseed-player="${1-game.active}"]`):document.querySelector(`[data-building-uid="${a.target.uid}"]`);if(attacker&&target)curved(point(attacker),point(target),'combatAttackPath','combatAttackHead',i%2?18:-18);if(a.blockerUid){const blocker=document.querySelector(`.gameCard.critter[data-resident-uid="${a.blockerUid}"]`);if(blocker&&attacker)curved(point(blocker),point(attacker),'combatBlockPath','combatBlockHead',i%2?-26:26);}});
   }
+  function installDirectManipulation(){
+    const DRAG_THRESHOLD=7;let gesture=null,ghost=null,arrow=null,arrowLine=null;
+    const clearTargets=()=>document.querySelectorAll('.directDropTarget,.directDropHover').forEach(el=>el.classList.remove('directDropTarget','directDropHover'));
+    function cleanup(){clearTargets();ghost?.remove();arrow?.remove();ghost=null;arrow=null;arrowLine=null;document.body.classList.remove('directManipulating');gesture=null;}
+    function cardGhost(source){const g=source.cloneNode(true);g.classList.add('dragCardGhost');g.removeAttribute('title');g.querySelectorAll('button,select').forEach(el=>el.remove());document.body.appendChild(g);return g;}
+    function moveGhost(x,y){if(ghost){ghost.style.left=`${x}px`;ghost.style.top=`${y}px`;}}
+    function linkArrow(source,kind){const r=source.getBoundingClientRect(),svg=document.createElementNS('http://www.w3.org/2000/svg','svg'),marker=kind==='block'?'hnhBlockHead':'hnhAttackHead';svg.classList.add(kind==='block'?'dragBlockArrow':'dragAttackArrow');svg.innerHTML=`<defs><marker id="${marker}" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" /></marker></defs><line marker-end="url(#${marker})" />`;document.body.appendChild(svg);const line=svg.querySelector('line');line.setAttribute('x1',r.left+r.width/2);line.setAttribute('y1',r.top+r.height/2);return{svg,line};}
+    const under=(x,y)=>document.elementFromPoint(x,y),recruitTarget=el=>el?.closest?.('[data-muster-uid]')||null,attackTarget=el=>el?.closest?.('[data-attack-building],[data-hearthseed-player]')||null,blockTarget=el=>el?.closest?.('.gameCard.critter[data-resident-uid]')||null;
+    function attackKey(el){if(!el)return null;if(el.hasAttribute('data-attack-building'))return`building:${el.dataset.attackBuilding}`;if(el.hasAttribute('data-hearthseed-player'))return`hearthseed:${el.dataset.hearthseedPlayer}`;return null;}
+    function markLegal(kind,legal){clearTargets();if(kind==='recruit')document.querySelectorAll('[data-muster-uid]').forEach(el=>{if(legal.has(String(el.dataset.musterUid)))el.classList.add('directDropTarget');});else if(kind==='attack'){document.querySelectorAll('[data-attack-building]').forEach(el=>{if(legal.has(`building:${el.dataset.attackBuilding}`))el.classList.add('directDropTarget');});document.querySelectorAll('[data-hearthseed-player]').forEach(el=>{if(legal.has(`hearthseed:${el.dataset.hearthseedPlayer}`))el.classList.add('directDropTarget');});}else document.querySelectorAll('.gameCard.critter[data-resident-uid]').forEach(el=>{if(legal.has(String(el.dataset.residentUid)))el.classList.add('directDropTarget');});}
+    function begin(event){if(event.button!==0||event.target.closest('button,select,a'))return;const recruit=event.target.closest('.recruitDraggable'),block=event.target.closest('.blockDraggable'),attack=event.target.closest('.attackDraggable');if(!recruit&&!block&&!attack)return;if(recruit){const uid=+recruit.dataset.handUid,p=game.players[game.active],card=p.hand.find(c=>c.uid===uid);if(!card)return;const legalMusters=E.legalMusters(game,game.active,card);if(!legalMusters.length)return;gesture={kind:'recruit',uid,source:recruit,startX:event.clientX,startY:event.clientY,pointerId:event.pointerId,legal:new Set(legalMusters.map(m=>String(m.uid))),dragging:false};}else if(block){const defenderIndex=1-game.active,uid=+block.dataset.residentUid,p=game.players[defenderIndex],resident=p.residents.find(r=>r.uid===uid);if(!resident)return;const legalMap=new Map();game.combat.attacks.forEach((a,i)=>{if(E.canBlock(game,defenderIndex,resident,a))legalMap.set(String(a.attackerUid),i);});if(!legalMap.size)return;gesture={kind:'block',uid,defenderIndex,source:block,startX:event.clientX,startY:event.clientY,pointerId:event.pointerId,legal:new Set(legalMap.keys()),legalMap,dragging:false};}else{const uid=+attack.dataset.residentUid,p=game.players[game.active],resident=p.residents.find(r=>r.uid===uid);if(!resident||!E.canAttack(game,game.active,resident))return;const legalTargets=E.legalAttackTargets(game,game.active,resident),opponent=1-game.active;if(!legalTargets.length)return;gesture={kind:'attack',uid,source:attack,startX:event.clientX,startY:event.clientY,pointerId:event.pointerId,legal:new Set(legalTargets.map(t=>t.kind==='hearthseed'?`hearthseed:${opponent}`:`building:${t.uid}`)),dragging:false};}}
+    function start(){if(!gesture||gesture.dragging)return;gesture.dragging=true;document.body.classList.add('directManipulating');markLegal(gesture.kind,gesture.legal);if(gesture.kind==='recruit'){ghost=cardGhost(gesture.source);moveGhost(gesture.startX,gesture.startY);}else{const a=linkArrow(gesture.source,gesture.kind);arrow=a.svg;arrowLine=a.line;}}
+    function move(event){if(!gesture||event.pointerId!==gesture.pointerId)return;if(!gesture.dragging&&Math.hypot(event.clientX-gesture.startX,event.clientY-gesture.startY)<DRAG_THRESHOLD)return;start();event.preventDefault();document.querySelectorAll('.directDropHover').forEach(el=>el.classList.remove('directDropHover'));const el=under(event.clientX,event.clientY);if(gesture.kind==='recruit'){moveGhost(event.clientX,event.clientY);const target=recruitTarget(el);if(target&&gesture.legal.has(String(target.dataset.musterUid)))target.classList.add('directDropHover');}else if(gesture.kind==='attack'){const target=attackTarget(el),valid=target&&gesture.legal.has(attackKey(target));arrowLine?.setAttribute('x2',event.clientX);arrowLine?.setAttribute('y2',event.clientY);arrow?.classList.toggle('valid',!!valid);if(valid)target.classList.add('directDropHover');}else{const target=blockTarget(el),key=target?.dataset?.residentUid,valid=target&&gesture.legal.has(String(key));arrowLine?.setAttribute('x2',event.clientX);arrowLine?.setAttribute('y2',event.clientY);arrow?.classList.toggle('valid',!!valid);if(valid)target.classList.add('directDropHover');}}
+    function finish(event){if(!gesture||event.pointerId!==gesture.pointerId)return;const g=gesture;if(!g.dragging){cleanup();return;}event.preventDefault();const el=under(event.clientX,event.clientY);if(g.kind==='recruit'){const target=recruitTarget(el),musterUid=target?.dataset?.musterUid;if(target&&g.legal.has(String(musterUid))){cleanup();doAction(()=>E.recruit(game,game.active,g.uid,+musterUid));return;}}else if(g.kind==='attack'){const target=attackTarget(el),key=attackKey(target);if(target&&g.legal.has(key)){const targetArg=key.startsWith('hearthseed:')?'hearthseed':+target.dataset.attackBuilding;cleanup();doAction(()=>E.declareAttack(game,game.active,g.uid,targetArg));return;}}else{const target=blockTarget(el),key=String(target?.dataset?.residentUid||'');if(target&&g.legal.has(key)){const attackIndex=g.legalMap.get(key);cleanup();doAction(()=>E.assignBlock(game,g.defenderIndex,g.uid,attackIndex));return;}}cleanup();}
+    document.addEventListener('pointerdown',begin,true);document.addEventListener('pointermove',move,{capture:true,passive:false});document.addEventListener('pointerup',finish,true);document.addEventListener('pointercancel',cleanup,true);window.addEventListener('blur',cleanup);
+  }
+
 
   function render(){
     if(!game){app.innerHTML=setupScreen();return;}
     const top=game.mode==='ai'?game.aiIndex:1-game.active,bottom=game.mode==='ai'?humanIndex():game.active;
     const enemy=game.players[top],home=game.players[bottom];
-    app.innerHTML=`<div class="client"><header class="tableTopbar"><div class="brandBlock"><div class="brand">Hearth & Hollow</div><span>Client v0.7.9 · Rules v0.6.2</span></div>${phaseStrip()}<div class="turnBlock"><small>Round ${E.currentRound(game)} · Turn ${game.turnNo}</small><b>${esc(game.players[game.active].name)} · ${game.phase}</b></div><div class="topControls">${utilityButtons()}${controls()}<button class="resetButton" onclick="UI.reset()">↺</button></div></header>${toast?`<div class="toast">${esc(toast)}</div>`:''}<main class="tableSurface">${playerBanner(enemy,top,true)}${villageZone(enemy,top,true)}${fieldZone(enemy,top,true)}${combatPanel()}${fieldZone(home,bottom,false)}${villageZone(home,bottom,false)}${playerBanner(home,bottom,false)}</main>${handPanel()}${drawerPanel()}${harvestOverlay()}${winnerOverlay()}</div>`;
+    app.innerHTML=`<div class="client"><header class="tableTopbar"><div class="brandBlock"><div class="brand">Hearth & Hollow</div><span>Client v0.8.0 · Rules v0.6.2</span></div>${phaseStrip()}<div class="turnBlock"><small>Round ${E.currentRound(game)} · Turn ${game.turnNo}</small><b>${esc(game.players[game.active].name)} · ${game.phase}</b></div><div class="topControls">${utilityButtons()}${controls()}<button class="resetButton" onclick="UI.reset()">↺</button></div></header>${toast?`<div class="toast">${esc(toast)}</div>`:''}<main class="tableSurface">${playerBanner(enemy,top,true)}${villageZone(enemy,top,true)}${fieldZone(enemy,top,true)}${combatPanel()}${fieldZone(home,bottom,false)}${villageZone(home,bottom,false)}${playerBanner(home,bottom,false)}</main>${handPanel()}${drawerPanel()}${harvestOverlay()}${winnerOverlay()}</div>`;
+    requestAnimationFrame(syncCombatArrows);
   }
 
   window.UI={
@@ -469,6 +411,8 @@
     endTurn:()=>doAction(()=>E.requestEndTurn(game,game.active)),
   };
   installDirectManipulation();
+  window.addEventListener('resize',()=>requestAnimationFrame(syncCombatArrows));
+  window.addEventListener('scroll',()=>requestAnimationFrame(syncCombatArrows),{passive:true});
   render();
 })();
 
@@ -513,7 +457,7 @@
 
   function syncVersion(){
     const el=document.querySelector('.brandBlock > span');
-    if(el&&el.textContent!=='Client v0.7.9 · Rules v0.6.2')el.textContent='Client v0.7.9 · Rules v0.6.2';
+    if(el&&el.textContent!=='Client v0.8.0 · Rules v0.6.2')el.textContent='Client v0.8.0 · Rules v0.6.2';
   }
 
   function flushAppObservers(){
@@ -546,7 +490,7 @@
     fallback.observe(app,{childList:true,subtree:false});
   }
 
-  window.HNH_UI_COORDINATOR={flush:queueFlush,version:'0.7.9'};
+  window.HNH_UI_COORDINATOR={flush:queueFlush,version:'0.8.0'};
   syncVersion();
 })();
 
@@ -713,7 +657,7 @@
     fieldRail.classList.toggle('drawLow', typeof lastFieldCount === 'number' && lastFieldCount <= 8);
 
     const brandVersion = document.querySelector('.brandBlock > span');
-    if (brandVersion) brandVersion.textContent = 'Client v0.7.9 · Rules v0.6.2';
+    if (brandVersion) brandVersion.textContent = 'Client v0.8.0 · Rules v0.6.2';
   }
 
   function syncEnhancements() {
@@ -1063,7 +1007,7 @@
     positionRails();
     syncTutorial();
     const brandVersion=document.querySelector('.brandBlock > span');
-    if(brandVersion)brandVersion.textContent='Client v0.7.9 · Rules v0.6.2';
+    if(brandVersion)brandVersion.textContent='Client v0.8.0 · Rules v0.6.2';
   }
 
   installDrag(fieldRail);
@@ -1161,7 +1105,7 @@
     ensureSetupLinks();
     ensureGameLinks();
     const brandVersion=document.querySelector('.brandBlock > span');
-    if(brandVersion)brandVersion.textContent='Client v0.7.9 · Rules v0.6.2';
+    if(brandVersion)brandVersion.textContent='Client v0.8.0 · Rules v0.6.2';
   }
 
   const app=document.getElementById('app');
@@ -1200,7 +1144,7 @@
 
   function syncVersion(){
     const el=document.querySelector('.brandBlock > span');
-    if(el)el.textContent='Client v0.7.9 · Rules v0.6.2';
+    if(el)el.textContent='Client v0.8.0 · Rules v0.6.2';
   }
 
   function sync(){
