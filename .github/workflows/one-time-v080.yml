@@ -15,7 +15,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Fix replacement callbacks and run refactor
+      - name: Prepare and run refactor
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -24,7 +24,22 @@ jobs:
           s=s.replace("building+'\\n  function workshopAction',s,count=1,flags=re.S)","lambda _m: building+'\\n  function workshopAction',s,count=1,flags=re.S)")
           s=s.replace("critter+'\\n  function handPanel',s,count=1,flags=re.S)","lambda _m: critter+'\\n  function handPanel',s,count=1,flags=re.S)")
           s=s.replace("combat+'\\n  function reactionTray',s,count=1,flags=re.S)","lambda _m: combat+'\\n  function reactionTray',s,count=1,flags=re.S)")
-          p.write_text(s)
+          cut=s.index("\ntest=Path('tests/ui-coordinator-test.js')")
+          tail=r'''
+
+test=Path('tests/ui-coordinator-test.js')
+t=test.read_text().replace('v=079','v=080').replace('v0.7.9','v0.8.0')
+t += r"""
+
+assert(client.includes('combatLinkOverlay'),'persistent combat arrow overlay missing');
+assert(client.includes('combatBlockPath'),'blue block arrow path missing');
+assert(client.includes('blockDraggable'),'direct block dragging missing');
+assert(client.includes('musterIdentity')&&client.includes('musterRulesText'),'Muster identity cleanup missing');
+console.log('✓ persistent attack/block arrows and clearer Muster identity');
+"""
+test.write_text(t)
+'''
+          p.write_text(s[:cut]+tail)
           PY
           python tools/v080_refactor.py
       - run: |
@@ -34,6 +49,8 @@ jobs:
           node tests/ability-completion-test.js
           node tests/ability-edge-test.js
           node tests/ui-coordinator-test.js
+          node --check data.js
+          node --check engine.js
           node --check client.js
       - run: |
           rm tools/v080_refactor.py .github/workflows/one-time-v080.yml
