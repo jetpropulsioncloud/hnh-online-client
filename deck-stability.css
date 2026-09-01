@@ -5,8 +5,3 @@ body:has(.cardInspector.pinned) .sideDeckRail{
   opacity:1!important;
   filter:none;
 }
-
-/* The decks are still draggable, but the tiny "↕ drag" badge was confusing and
-   visually noisy. Keep the interaction discoverable through the cursor/title
-   instead of drawing another symbol on the deck itself. */
-.deckDragHandle{display:none!important}
