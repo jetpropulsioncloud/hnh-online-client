@@ -25,3 +25,5 @@ jobs:
         run: node rules-test.js
       - name: Run attack sequencing regression tests
         run: node rules-patch-test.js
+      - name: Check tabletop interaction script
+        run: node --check tabletop-interactions.js
