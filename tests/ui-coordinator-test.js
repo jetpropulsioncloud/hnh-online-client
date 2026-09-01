@@ -5,14 +5,14 @@ const html=fs.readFileSync('index.html','utf8');
 const client=fs.readFileSync('client.js','utf8');
 const styles=fs.readFileSync('styles.css','utf8');
 
-assert(html.includes('styles.css?v=078'),'styles.css must be the single stylesheet');
-assert(html.includes('data.js?v=078')&&html.includes('engine.js?v=078')&&html.includes('client.js?v=078'),'consolidated runtime files are not wired');
+assert(html.includes('styles.css?v=079'),'styles.css must be the single stylesheet');
+assert(html.includes('data.js?v=079')&&html.includes('engine.js?v=079')&&html.includes('client.js?v=079'),'consolidated runtime files are not wired');
 assert((html.match(/<script src=/g)||[]).length===3,'index.html should load exactly three runtime scripts');
 assert((html.match(/rel="stylesheet"/g)||[]).length===1,'index.html should load exactly one stylesheet');
 assert(client.includes('CoordinatedMutationObserver'),'coordinated observer shim missing from consolidated client');
 assert(client.includes('appObservers'),'single app observer registry missing');
-assert(client.includes("version:'0.7.8'"),'coordinator version missing');
-assert(html.includes('Tabletop Client v0.7.8'),'presentation version not bumped');
+assert(client.includes("version:'0.7.9'"),'coordinator version missing');
+assert(html.includes('Tabletop Client v0.7.9'),'presentation version not bumped');
 
 const retired=[
   'client-v062.js','ui-coordinator.js','tabletop-interactions.js','tabletop-deck-polish.js','social-links.js','ability-ui.js',
@@ -35,7 +35,7 @@ assert(client.includes('View Hearthkeeper card'),'Hearthkeeper reference access 
 
 assert(client.includes('buildWallet')&&client.includes('YOUR RESOURCES'),'Build Book must show the active player resource wallet');
 assert(styles.includes('.buildWallet'),'Build Book resource wallet styling missing');
-assert(client.includes('tableFidgets')&&client.includes('fidgetAcorn')&&client.includes('fidgetMushroom'),'ambient table fidgets missing');
+assert(client.includes('handFidgets')&&client.includes('fidgetAcorn')&&client.includes('fidgetMushroom'),'hand-area fidgets missing');
 assert(styles.includes('.tableFidget')&&styles.includes('@keyframes tableFidgetBounce'),'ambient fidget styling/animation missing');
 assert(!client.includes('hearthstepTrail')&&!styles.includes('.hearthstepTrail'),'old Hearthstep bar should be retired');
 assert(client.includes('compactTrial'),'compact Frost Trial ribbon missing');
@@ -48,6 +48,14 @@ console.log('✓ Build Book wallet, ambient fidgets, and compact Frost Trial');
 assert(!client.includes('aiPace'),'AI pace state should be removed');
 assert(!client.includes('forgiving priorities')&&!client.includes('sensible priorities')&&!client.includes('sharp priorities'),'difficulty labels should stay simple');
 assert(client.includes('<option value=\"beginner\" selected>Beginner</option>')&&client.includes('<option value=\"standard\">Standard</option>')&&client.includes('<option value=\"hard\">Hard</option>'),'simple AI difficulty choices missing');
-assert(client.includes('tableFidgets')&&!client.includes('hearthstepTrail'),'ambient table fidgets should replace the Hearthstep bar');
+assert(client.includes('handFidgets')&&!client.includes('hearthstepTrail'),'compact hand-area fidgets should replace the Hearthstep bar');
 assert(!client.includes('trialDivider'),'duplicate Frost Trial divider should be removed from render');
 console.log('✓ setup declutter, ambient fidgets, and compact Frost Trial');
+
+assert(client.includes('installDirectManipulation'),'direct manipulation controller missing');
+assert(client.includes('recruitDraggable')&&client.includes('data-muster-uid'),'drag-to-recruit hooks missing');
+assert(client.includes('attackDraggable')&&client.includes('dragAttackArrow'),'drag-to-attack arrow hooks missing');
+assert(!client.includes('function attackAction(')&&!client.includes('id=\"atk-${r.uid}'),'legacy attack dropdown UI should be removed');
+assert(styles.includes('.dragCardGhost')&&styles.includes('.dragAttackArrow')&&styles.includes('.directDropTarget'),'direct manipulation styling missing');
+assert(styles.includes('.handFidgets'),'Hearthstep pieces should live above the hand');
+console.log('✓ drag-to-recruit, drag-arrow attack, and hand-area fidgets');
