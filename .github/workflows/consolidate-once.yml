@@ -53,7 +53,6 @@ jobs:
             cat ability-ui.js
           } > client.js
 
-          # One presentation version, instead of old layers fighting over it.
           sed -E -i "s/Client v0\.[0-9]+\.[0-9]+ · Rules v0\.6\.2/Client v0.7.4 · Rules v0.6.2/g" client.js
           sed -i "s/version:'0.7.3'/version:'0.7.4'/g" client.js
 
@@ -99,7 +98,6 @@ jobs:
 
           python3 - <<'PY'
           from pathlib import Path
-          import re
 
           p=Path('tests/smoke-test.js')
           s=p.read_text()
@@ -110,7 +108,10 @@ jobs:
 
           p=Path('tests/rules-test.js')
           s=p.read_text().replace("fs.readFileSync('engine-v062.js','utf8'),{filename:'engine-v062.js'}", "fs.readFileSync('engine.js','utf8'),{filename:'engine.js'}")
-          s=re.sub(r"ok\('Client script parses and exposes UI',\(\)=>\{.*?\n\}\);", """ok('Consolidated client parses and contains the UI export',()=>{\n  const source=fs.readFileSync('client.js','utf8');\n  new vm.Script(source,{filename:'client.js'});\n  assert(/window\\.UI\\s*=/.test(source),'client UI export missing');\n});""", s, flags=re.S)
+          start=s.index("ok('Client script parses and exposes UI'")
+          end=s.index('\n});',start)+4
+          replacement="""ok('Consolidated client parses and contains the UI export',()=>{\n  const source=fs.readFileSync('client.js','utf8');\n  new vm.Script(source,{filename:'client.js'});\n  assert(/window\\.UI\\s*=/.test(source),'client UI export missing');\n});"""
+          s=s[:start]+replacement+s[end:]
           p.write_text(s)
 
           p=Path('tests/rules-patch-test.js')
@@ -123,31 +124,31 @@ jobs:
             p.write_text(s)
 
           Path('tests/ui-coordinator-test.js').write_text(r'''const fs=require('fs');
-          const assert=require('assert');
+const assert=require('assert');
 
-          const html=fs.readFileSync('index.html','utf8');
-          const client=fs.readFileSync('client.js','utf8');
+const html=fs.readFileSync('index.html','utf8');
+const client=fs.readFileSync('client.js','utf8');
 
-          assert(html.includes('styles.css?v=074'),'styles.css must be the single stylesheet');
-          assert(html.includes('data.js?v=074')&&html.includes('engine.js?v=074')&&html.includes('client.js?v=074'),'consolidated runtime files are not wired');
-          assert((html.match(/<script src=/g)||[]).length===3,'index.html should load exactly three runtime scripts');
-          assert((html.match(/rel="stylesheet"/g)||[]).length===1,'index.html should load exactly one stylesheet');
-          assert(client.includes('CoordinatedMutationObserver'),'coordinated observer shim missing from consolidated client');
-          assert(client.includes('appObservers'),'single app observer registry missing');
-          assert(client.includes("version:'0.7.4'"),'coordinator version missing');
-          assert(html.includes('Tabletop Client v0.7.4'),'presentation version not bumped');
+assert(html.includes('styles.css?v=074'),'styles.css must be the single stylesheet');
+assert(html.includes('data.js?v=074')&&html.includes('engine.js?v=074')&&html.includes('client.js?v=074'),'consolidated runtime files are not wired');
+assert((html.match(/<script src=/g)||[]).length===3,'index.html should load exactly three runtime scripts');
+assert((html.match(/rel="stylesheet"/g)||[]).length===1,'index.html should load exactly one stylesheet');
+assert(client.includes('CoordinatedMutationObserver'),'coordinated observer shim missing from consolidated client');
+assert(client.includes('appObservers'),'single app observer registry missing');
+assert(client.includes("version:'0.7.4'"),'coordinator version missing');
+assert(html.includes('Tabletop Client v0.7.4'),'presentation version not bumped');
 
-          const retired=[
-            'client-v062.js','ui-coordinator.js','tabletop-interactions.js','tabletop-deck-polish.js','social-links.js','ability-ui.js',
-            'client-v062.css','tabletop-interactions.css','tabletop-deck-polish.css','social-links.css','ability-ui.css','deck-stability.css',
-            'engine-v062.js','engine-rules-patches.js','ability-completion.js','ability-completion-fixes.js','data-v062-completion.js',
-            'fixed-tabletop.js','fixed-tabletop.css','app.js','_stop'
-          ];
-          for(const file of retired)assert(!fs.existsSync(file),`${file} should be retired after consolidation`);
+const retired=[
+  'client-v062.js','ui-coordinator.js','tabletop-interactions.js','tabletop-deck-polish.js','social-links.js','ability-ui.js',
+  'client-v062.css','tabletop-interactions.css','tabletop-deck-polish.css','social-links.css','ability-ui.css','deck-stability.css',
+  'engine-v062.js','engine-rules-patches.js','ability-completion.js','ability-completion-fixes.js','data-v062-completion.js',
+  'fixed-tabletop.js','fixed-tabletop.css','app.js','_stop'
+];
+for(const file of retired)assert(!fs.existsSync(file),`${file} should be retired after consolidation`);
 
-          console.log('✓ runtime is consolidated to data.js + engine.js + client.js + styles.css');
-          console.log('✓ UI observer coordination survived consolidation');
-          ''')
+console.log('✓ runtime is consolidated to data.js + engine.js + client.js + styles.css');
+console.log('✓ UI observer coordination survived consolidation');
+''')
           PY
 
           cat > .github/workflows/smoke.yml <<'EOF'
@@ -243,7 +244,6 @@ jobs:
             client-v062.js ui-coordinator.js tabletop-interactions.js tabletop-deck-polish.js social-links.js ability-ui.js \
             client-v062.css tabletop-interactions.css tabletop-deck-polish.css social-links.css ability-ui.css deck-stability.css
 
-          # The job removes itself so this is genuinely a one-time migration.
           rm -f .github/workflows/consolidate-once.yml
 
       - name: Verify consolidated repo
