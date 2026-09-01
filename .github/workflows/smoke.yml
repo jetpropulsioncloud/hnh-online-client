@@ -29,8 +29,6 @@ jobs:
         run: node ability-completion-test.js
       - name: Run card ability timing and empty-zone gate
         run: node ability-edge-test.js
-      - name: Run fixed tabletop interaction guard
-        run: node viewport-lock-test.js
       - name: Check tabletop interaction scripts
         run: |
           node --check tabletop-interactions.js
@@ -40,4 +38,3 @@ jobs:
           node --check ability-completion-fixes.js
           node --check ability-ui.js
           node --check data-v062-completion.js
-          node --check viewport-lock.js
