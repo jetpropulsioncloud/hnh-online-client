@@ -2,7 +2,7 @@ const fs=require('fs');
 const vm=require('vm');
 const assert=require('assert');
 global.window=global;
-for(const f of ['data.js','engine-v062.js','engine-rules-patches.js'])vm.runInThisContext(fs.readFileSync(f,'utf8'),{filename:f});
+for(const f of ['data.js','engine.js'])vm.runInThisContext(fs.readFileSync(f,'utf8'),{filename:f});
 const E=global.HNH_ENGINE;
 const rng=()=>0.01;
 

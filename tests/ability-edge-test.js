@@ -2,7 +2,7 @@ const fs=require('fs');
 const vm=require('vm');
 const assert=require('assert');
 global.window=global;
-for(const file of ['data.js','data-v062-completion.js','engine-v062.js','engine-rules-patches.js','ability-completion.js','ability-completion-fixes.js'])vm.runInThisContext(fs.readFileSync(file,'utf8'),{filename:file});
+for(const file of ['data.js','engine.js'])vm.runInThisContext(fs.readFileSync(file,'utf8'),{filename:file});
 const E=global.HNH_ENGINE,D=global.HNH_DATA.decks;
 const rng=()=>0.01;
 let uid=980000;

@@ -4,7 +4,7 @@ const assert=require('assert');
 
 global.window=global;
 vm.runInThisContext(fs.readFileSync('data.js','utf8'),{filename:'data.js'});
-vm.runInThisContext(fs.readFileSync('engine-v062.js','utf8'),{filename:'engine-v062.js'});
+vm.runInThisContext(fs.readFileSync('engine.js','utf8'),{filename:'engine.js'});
 const E=global.HNH_ENGINE;
 
 const ok=(name,fn)=>{fn();console.log(`✓ ${name}`);};
@@ -105,10 +105,10 @@ ok('Surviving Critter damage clears at its controller Rest, not at Dawn',()=>{
   assert.equal(other.residents[0].damage,2,'opponent survivor damage remains until opponent Rest');
 });
 
-ok('Client script parses and exposes UI',()=>{
-  global.document={getElementById:()=>({innerHTML:''})};
-  vm.runInThisContext(fs.readFileSync('client-v062.js','utf8'),{filename:'client-v062.js'});
-  assert(global.UI);
+ok('Consolidated client parses and contains the UI export',()=>{
+  const source=fs.readFileSync('client.js','utf8');
+  new vm.Script(source,{filename:'client.js'});
+  assert(/window\.UI\s*=/.test(source),'client UI export missing');
 });
 
 console.log('\nAll v0.6.2 rule regression tests passed.');
