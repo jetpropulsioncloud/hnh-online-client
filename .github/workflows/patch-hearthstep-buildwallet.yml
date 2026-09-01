@@ -1,0 +1,40 @@
+name: One-time Hearthstep build wallet patch
+
+on:
+  push:
+    branches:
+      - feat/hearthstep-build-wallet
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v4
+        with:
+          ref: feat/hearthstep-build-wallet
+          fetch-depth: 0
+      - name: Apply patch and test
+        run: |
+          python3 scripts/patch-hearthstep-buildwallet.py
+          node --check data.js
+          node --check engine.js
+          node --check client.js
+          node tests/smoke-test.js
+          node tests/rules-test.js
+          node tests/rules-patch-test.js
+          node tests/ability-completion-test.js
+          node tests/ability-edge-test.js
+          node tests/ui-coordinator-test.js
+      - name: Commit patch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm scripts/patch-hearthstep-buildwallet.py .github/workflows/patch-hearthstep-buildwallet.yml
+          git add -A
+          git commit -m 'Show Build Book resources and add Hearthstep fidget'
+          git push origin HEAD:feat/hearthstep-build-wallet
