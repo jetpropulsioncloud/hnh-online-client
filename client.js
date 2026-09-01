@@ -8,10 +8,9 @@
     standard:{label:'Standard',skill:'standard',maxSteps:6,recruitUntil:6,buildUntil:5,attackers:4},
     hard:{label:'Hard',skill:'hard',maxSteps:6,recruitUntil:6,buildUntil:5,attackers:4}
   };
-  const AI_PACES={slow:{label:'Deliberate',delay:1250},normal:{label:'Normal',delay:800}};
-  let game=null,toast='',aiTimer=null,drawer=null,aiDifficulty='beginner',aiPace='slow';
+  const AI_ACTION_DELAY=1100;
+  let game=null,toast='',aiTimer=null,drawer=null,aiDifficulty='beginner';
   const aiProfile=()=>AI_PROFILES[aiDifficulty]||AI_PROFILES.beginner;
-  const aiPaceProfile=()=>AI_PACES[aiPace]||AI_PACES.slow;
 
   const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[m]));
   const costText=cost=>!cost||!Object.keys(cost).length?'Free':Object.entries(cost).map(([r,n])=>`${n>1?n:''}${ICON[r]||r}`).join(' + ');
@@ -19,10 +18,10 @@
   const humanIndex=()=>game?.mode==='ai'?1-game.aiIndex:game?.active??0;
   const faction=p=>decks[p.factionKey];
   const setToast=msg=>{toast=msg;clearTimeout(setToast.t);setToast.t=setTimeout(()=>{toast='';render();},2400);};
-  const aiNote=msg=>{toast=msg;clearTimeout(setToast.t);setToast.t=setTimeout(()=>{toast='';render();},Math.max(1700,aiPaceProfile().delay+450));};
+  const aiNote=msg=>{toast=msg;clearTimeout(setToast.t);setToast.t=setTimeout(()=>{toast='';render();},1850);};
 
-  function newMatch(mode,key='AS',difficulty='beginner',pace='slow'){
-    clearTimeout(aiTimer);drawer=null;aiDifficulty=AI_PROFILES[difficulty]?difficulty:'beginner';aiPace=AI_PACES[pace]?pace:'slow';
+  function newMatch(mode,key='AS',difficulty='beginner'){
+    clearTimeout(aiTimer);drawer=null;aiDifficulty=AI_PROFILES[difficulty]?difficulty:'beginner';
     game=E.createGame({mode,humanFaction:key});
     E.startGame(game);
     render();scheduleAI();
@@ -44,7 +43,7 @@
     clearTimeout(aiTimer);
     if(!game||game.winner||game.mode!=='ai'||game.active!==game.aiIndex)return;
     if(game.phase==='Block')return;
-    aiTimer=setTimeout(runAI,aiPaceProfile().delay);
+    aiTimer=setTimeout(runAI,AI_ACTION_DELAY);
   }
 
   function runAI(){
@@ -166,7 +165,7 @@
   }
 
   function setupScreen(){
-    return `<main class="setupShell"><section class="setupCard"><div class="setupSeal">🔥</div><div class="eyebrow">DIGITAL TABLETOP · RULES v0.6.2</div><h1>Hearth & Hollow</h1><p class="lead">Build a tiny woodland village, gather your Critters, and keep the last warm Hearthseed glowing through winter.</p><h2 class="setupPrompt">Choose your Hearthkeeper</h2><div class="factionGrid"><button class="factionChoice porch" onclick="UI.newMatch('ai','AS',document.getElementById('aiDifficulty').value,document.getElementById('aiPace').value)"><span class="bigIcon">🥜💦</span><span><b>Hazel Underleaf</b><small>Porchlight Tradition · Acorn / Sap</small><em class="deckArchetype">⚡ Fast, scrappy pressure</em><span class="deckExplain">Attack Buildings early, disrupt production, and keep the tempo moving.</span></span></button><button class="factionChoice stone" onclick="UI.newMatch('ai','RP',document.getElementById('aiDifficulty').value,document.getElementById('aiPace').value)"><span class="bigIcon">🫚🪨</span><span><b>Mosswick Grubroot</b><small>Stonecap Tradition · Root / Pebble</small><em class="deckArchetype">🛡️ Sturdy, recursive defense</em><span class="deckExplain">Block, repair, recycle Critters, and grow into a strong late village.</span></span></button></div><div class="aiDifficultyBox"><label for="aiDifficulty"><b>AI Difficulty</b><select id="aiDifficulty"><option value="beginner" selected>Beginner — forgiving priorities</option><option value="standard">Standard — sensible priorities</option><option value="hard">Hard — sharp priorities</option></select></label><small>Difficulty changes what the AI values and targets, not how many legal actions it is allowed to take.</small><label for="aiPace"><b>AI Pace</b><select id="aiPace"><option value="slow" selected>Deliberate — easy to follow</option><option value="normal">Normal</option></select></label><small>Pace is separate from difficulty. Deliberate pauses between visible actions so you can read the opponent turn.</small></div><button class="textButton" onclick="UI.newMatch('hotseat','AS')">Hot-seat two player</button><div class="ruleCallout"><b>Prosperity:</b> reaching 15 is not immediate victory. Hold 15+ active Prosperity until the start of your Dawn.</div></section></main>`;
+    return `<main class="setupShell"><section class="setupCard"><div class="setupSeal">🔥</div><div class="eyebrow">DIGITAL TABLETOP · RULES v0.6.2</div><h1>Hearth & Hollow</h1><p class="lead">Choose a Hearthkeeper and protect your village through winter.</p><h2 class="setupPrompt">Choose your Hearthkeeper</h2><div class="factionGrid"><button class="factionChoice porch" onclick="UI.newMatch('ai','AS',document.getElementById('aiDifficulty').value)"><span class="bigIcon">🥜💦</span><span><b>Hazel Underleaf</b><small>Porchlight · Acorn / Sap</small><em class="deckArchetype">⚡ Fast & scrappy</em></span></button><button class="factionChoice stone" onclick="UI.newMatch('ai','RP',document.getElementById('aiDifficulty').value)"><span class="bigIcon">🫚🪨</span><span><b>Mosswick Grubroot</b><small>Stonecap · Root / Pebble</small><em class="deckArchetype">🛡️ Sturdy & recursive</em></span></button></div><div class="aiDifficultyBox"><label for="aiDifficulty"><b>AI Difficulty</b><select id="aiDifficulty"><option value="beginner" selected>Beginner</option><option value="standard">Standard</option><option value="hard">Hard</option></select></label></div><button class="textButton" onclick="UI.newMatch('hotseat','AS')">Hot-seat two player</button></section></main>`;
   }
 
   function phaseStrip(){
@@ -296,7 +295,7 @@
   }
 
   function combatPanel(){
-    if(!game.combat.attacks.length&&game.phase!=='Block')return `<section class="combatRibbon quiet"><span>⚔</span><b>Frost Trial</b><small>Declare ready Critters when you want to attack.</small></section>`;
+    if(!game.combat.attacks.length&&game.phase!=='Block')return `<section class="combatRibbon quiet compactTrial"><span>⚔</span><b>Frost Trial</b><small>Declare attackers when ready.</small></section>`;
     const attacker=game.players[game.active],defIndex=1-game.active,defender=game.players[defIndex];
     const humanDefender=isHuman(defIndex),humanAttacker=isHuman(game.active),canResolve=game.phase==='Block'&&(humanAttacker||humanDefender);
     return `<section class="combatRibbon activeCombat"><div class="combatHeading"><span>⚔</span><div><b>${game.combat.committed?'Block & React':'Declare Attackers'}</b><small>${game.combat.committed?'Attack committed · respond before damage':'Choose all attackers before committing'}</small></div></div><div class="attackList">${game.combat.attacks.map((a,i)=>{
@@ -345,16 +344,22 @@
     return `<div class="modalBack"><div class="modal winnerModal"><span class="eyebrow">FROST TRIAL COMPLETE</span><h1>🏆 ${esc(p.name)} wins</h1><p>${game.winner.reason==='Prosperity'?'They began Dawn with at least 15 active Prosperity.':game.winner.reason==='Exposed'?'An unblocked attack reached an Exposed Hearthseed.':'The opposing Hearthseed reached 0 HP.'}</p><button onclick="UI.reset()">Return to setup</button></div></div>`;
   }
 
+
+  function tableFidgets(){
+    return `<div class="tableFidgets" aria-label="Tiny tabletop fidgets. No gameplay effect."><button type="button" class="tableFidget fidgetAcorn" data-fidget="bounce" title="Fidget · no game effect" onclick="UI.fidget(event.currentTarget)">🌰</button><button type="button" class="tableFidget fidgetLeaf" data-fidget="spin" title="Fidget · no game effect" onclick="UI.fidget(event.currentTarget)">🍂</button><button type="button" class="tableFidget fidgetPebble" data-fidget="wiggle" title="Fidget · no game effect" onclick="UI.fidget(event.currentTarget)">🪨</button><button type="button" class="tableFidget fidgetMushroom" data-fidget="squish" title="Fidget · no game effect" onclick="UI.fidget(event.currentTarget)">🍄</button></div>`;
+  }
+
   function render(){
     if(!game){app.innerHTML=setupScreen();return;}
     const top=game.mode==='ai'?game.aiIndex:1-game.active,bottom=game.mode==='ai'?humanIndex():game.active;
     const enemy=game.players[top],home=game.players[bottom];
-    app.innerHTML=`<div class="client"><header class="tableTopbar"><div class="brandBlock"><div class="brand">Hearth & Hollow</div><span>Client v0.7.7 · Rules v0.6.2</span></div>${phaseStrip()}<div class="turnBlock"><small>Round ${E.currentRound(game)} · Turn ${game.turnNo}</small><b>${esc(game.players[game.active].name)} · ${game.phase}</b></div><div class="topControls">${utilityButtons()}${controls()}<button class="resetButton" onclick="UI.reset()">↺</button></div></header>${toast?`<div class="toast">${esc(toast)}</div>`:''}<main class="tableSurface">${playerBanner(enemy,top,true)}${villageZone(enemy,top,true)}${fieldZone(enemy,top,true)}<div class="trialDivider"><i></i><span>❄ FROST TRIAL ❄</span><i></i></div>${combatPanel()}${fieldZone(home,bottom,false)}${villageZone(home,bottom,false)}${playerBanner(home,bottom,false)}</main>${handPanel()}${drawerPanel()}${harvestOverlay()}${winnerOverlay()}</div>`;
+    app.innerHTML=`<div class="client"><header class="tableTopbar"><div class="brandBlock"><div class="brand">Hearth & Hollow</div><span>Client v0.7.8 · Rules v0.6.2</span></div>${phaseStrip()}<div class="turnBlock"><small>Round ${E.currentRound(game)} · Turn ${game.turnNo}</small><b>${esc(game.players[game.active].name)} · ${game.phase}</b></div><div class="topControls">${utilityButtons()}${controls()}<button class="resetButton" onclick="UI.reset()">↺</button></div></header>${toast?`<div class="toast">${esc(toast)}</div>`:''}<main class="tableSurface">${tableFidgets()}${playerBanner(enemy,top,true)}${villageZone(enemy,top,true)}${fieldZone(enemy,top,true)}${combatPanel()}${fieldZone(home,bottom,false)}${villageZone(home,bottom,false)}${playerBanner(home,bottom,false)}</main>${handPanel()}${drawerPanel()}${harvestOverlay()}${winnerOverlay()}</div>`;
   }
 
   window.UI={
     newMatch,reset:()=>{clearTimeout(aiTimer);game=null;toast='';drawer=null;render();},
     drawer:name=>{drawer=name;render();},
+    fidget:el=>{if(!el)return;el.classList.remove('fidgetPop');void el.offsetWidth;el.classList.add('fidgetPop');setTimeout(()=>el.classList.remove('fidgetPop'),520);},
     harvest:r=>doAction(()=>E.chooseHarvest(game,r)),
     build:id=>doAction(()=>E.build(game,game.active,id)),
     recruit:(uid,sid)=>doAction(()=>E.recruit(game,game.active,uid,+document.getElementById(sid).value)),
@@ -413,7 +418,7 @@
 
   function syncVersion(){
     const el=document.querySelector('.brandBlock > span');
-    if(el&&el.textContent!=='Client v0.7.7 · Rules v0.6.2')el.textContent='Client v0.7.7 · Rules v0.6.2';
+    if(el&&el.textContent!=='Client v0.7.8 · Rules v0.6.2')el.textContent='Client v0.7.8 · Rules v0.6.2';
   }
 
   function flushAppObservers(){
@@ -446,7 +451,7 @@
     fallback.observe(app,{childList:true,subtree:false});
   }
 
-  window.HNH_UI_COORDINATOR={flush:queueFlush,version:'0.7.7'};
+  window.HNH_UI_COORDINATOR={flush:queueFlush,version:'0.7.8'};
   syncVersion();
 })();
 
@@ -613,7 +618,7 @@
     fieldRail.classList.toggle('drawLow', typeof lastFieldCount === 'number' && lastFieldCount <= 8);
 
     const brandVersion = document.querySelector('.brandBlock > span');
-    if (brandVersion) brandVersion.textContent = 'Client v0.7.7 · Rules v0.6.2';
+    if (brandVersion) brandVersion.textContent = 'Client v0.7.8 · Rules v0.6.2';
   }
 
   function syncEnhancements() {
@@ -963,7 +968,7 @@
     positionRails();
     syncTutorial();
     const brandVersion=document.querySelector('.brandBlock > span');
-    if(brandVersion)brandVersion.textContent='Client v0.7.7 · Rules v0.6.2';
+    if(brandVersion)brandVersion.textContent='Client v0.7.8 · Rules v0.6.2';
   }
 
   installDrag(fieldRail);
@@ -1061,7 +1066,7 @@
     ensureSetupLinks();
     ensureGameLinks();
     const brandVersion=document.querySelector('.brandBlock > span');
-    if(brandVersion)brandVersion.textContent='Client v0.7.7 · Rules v0.6.2';
+    if(brandVersion)brandVersion.textContent='Client v0.7.8 · Rules v0.6.2';
   }
 
   const app=document.getElementById('app');
@@ -1100,7 +1105,7 @@
 
   function syncVersion(){
     const el=document.querySelector('.brandBlock > span');
-    if(el)el.textContent='Client v0.7.7 · Rules v0.6.2';
+    if(el)el.textContent='Client v0.7.8 · Rules v0.6.2';
   }
 
   function sync(){
@@ -1135,105 +1140,5 @@
   const observer=new MutationObserver(()=>requestAnimationFrame(sync));
   observer.observe(app,{childList:true,subtree:true});
   window.HNH_ABILITY_UI={sync,choose};
-  sync();
-})();
-
-
-/* ===== Hearthstep tabletop fidget ===== */
-(() => {
-  const app=document.getElementById('app');
-  if(!app)return;
-
-  const trail=document.createElement('div');
-  trail.className='hearthstepTrail';
-  trail.setAttribute('aria-label','Hearthstep fidget. No gameplay effect.');
-  trail.innerHTML=`
-    <div class="hearthstepTitle"><b>Hearthstep</b><small>fidget · no game effect</small></div>
-    <div class="hearthstepCourse" role="group" aria-label="Hearthstep trail">
-      <button class="hearthstepStep" type="button" aria-label="Hop to stump">🪵</button>
-      <button class="hearthstepStep" type="button" aria-label="Hop to stone">🪨</button>
-      <button class="hearthstepStep" type="button" aria-label="Hop to mushroom">🍄</button>
-      <button class="hearthstepStep" type="button" aria-label="Hop to moss">🌿</button>
-      <span class="hearthstepAcorn" role="button" tabindex="0" aria-label="Little acorn. Drag it or use arrow keys.">🌰</span>
-    </div>`;
-  document.body.appendChild(trail);
-
-  const course=trail.querySelector('.hearthstepCourse');
-  const acorn=trail.querySelector('.hearthstepAcorn');
-  const steps=[...trail.querySelectorAll('.hearthstepStep')];
-  let position=0;
-  let dragging=false;
-
-  function stepCenter(index){
-    const step=steps[index],cr=course.getBoundingClientRect(),sr=step.getBoundingClientRect();
-    return {x:sr.left-cr.left+sr.width/2,y:sr.top-cr.top+sr.height/2};
-  }
-
-  function place(index,{hop=true}={}){
-    position=Math.max(0,Math.min(steps.length-1,index));
-    const {x,y}=stepCenter(position);
-    acorn.style.left=`${x}px`;
-    acorn.style.top=`${y}px`;
-    steps.forEach((step,i)=>step.classList.toggle('landed',i===position));
-    if(hop){
-      acorn.classList.remove('hop');
-      void acorn.offsetWidth;
-      acorn.classList.add('hop');
-      steps[position].classList.remove('tap');
-      void steps[position].offsetWidth;
-      steps[position].classList.add('tap');
-    }
-  }
-
-  steps.forEach((step,index)=>step.addEventListener('click',()=>place(index)));
-
-  acorn.addEventListener('pointerdown',event=>{
-    dragging=true;
-    acorn.classList.add('dragging');
-    event.preventDefault();
-  });
-
-  document.addEventListener('pointermove',event=>{
-    if(!dragging)return;
-    const r=course.getBoundingClientRect();
-    const x=Math.max(12,Math.min(r.width-12,event.clientX-r.left));
-    const y=Math.max(10,Math.min(r.height-10,event.clientY-r.top));
-    acorn.style.left=`${x}px`;
-    acorn.style.top=`${y}px`;
-  });
-
-  function finishDrag(event){
-    if(!dragging)return;
-    dragging=false;
-    acorn.classList.remove('dragging');
-    const r=course.getBoundingClientRect();
-    const x=event.clientX-r.left;
-    let best=0,bestDist=Infinity;
-    steps.forEach((_,i)=>{
-      const d=Math.abs(stepCenter(i).x-x);
-      if(d<bestDist){bestDist=d;best=i;}
-    });
-    place(best);
-  }
-  document.addEventListener('pointerup',finishDrag);
-  document.addEventListener('pointercancel',finishDrag);
-
-  acorn.addEventListener('keydown',event=>{
-    if(event.key==='ArrowLeft'||event.key==='ArrowRight'){
-      event.preventDefault();
-      place(position+(event.key==='ArrowRight'?1:-1));
-    }else if(event.key==='Enter'||event.key===' '){
-      event.preventDefault();
-      place(position);
-    }
-  });
-
-  function sync(){
-    const inGame=Boolean(document.querySelector('.client'));
-    trail.classList.toggle('visible',inGame);
-    if(inGame)requestAnimationFrame(()=>place(position,{hop:false}));
-  }
-  window.addEventListener('resize',()=>{if(trail.classList.contains('visible'))place(position,{hop:false});});
-  new MutationObserver(sync).observe(app,{childList:true,subtree:true});
   sync();
 })();

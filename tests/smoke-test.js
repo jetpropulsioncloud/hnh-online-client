@@ -63,10 +63,10 @@ console.log('✓ current printed ability wording checkpoints');
 
 // Static runtime wiring smoke. The browser should load only the four consolidated runtime assets.
 const html = fs.readFileSync('index.html', 'utf8');
-assert(html.includes('styles.css?v=077'), 'consolidated styles.css is not loaded');
-assert(html.includes('data.js?v=077'), 'consolidated data.js is not loaded');
-assert(html.includes('engine.js?v=077'), 'consolidated engine.js is not loaded');
-assert(html.includes('client.js?v=077'), 'consolidated client.js is not loaded');
+assert(html.includes('styles.css?v=078'), 'consolidated styles.css is not loaded');
+assert(html.includes('data.js?v=078'), 'consolidated data.js is not loaded');
+assert(html.includes('engine.js?v=078'), 'consolidated engine.js is not loaded');
+assert(html.includes('client.js?v=078'), 'consolidated client.js is not loaded');
 assert(!html.includes('client-v062.js') && !html.includes('engine-v062.js'), 'legacy split runtime is still referenced');
-assert(html.includes('Tabletop Client v0.7.7'), 'client presentation version mismatch');
+assert(html.includes('Tabletop Client v0.7.8'), 'client presentation version mismatch');
 console.log('✓ consolidated client/runtime wiring smoke');
