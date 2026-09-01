@@ -269,7 +269,7 @@
 
   function blueprintPanel(){
     const pi=game.mode==='ai'?humanIndex():game.active,p=game.players[pi],f=faction(p),interactive=isHuman(pi)&&pi===game.active&&game.phase==='Build';
-    return `<div class="drawerHeader"><div><span class="eyebrow">BUILD BOOK</span><h2>Blueprints <small>${12-p.usedBlueprints.length}/12</small></h2></div><button class="closeButton" onclick="UI.drawer(null)">×</button></div><p class="drawerLead">Your twelve known village plans. Build from here during Build.</p><div class="blueprintGrid">${f.blueprints.map(bp=>{
+    return `<div class="drawerHeader"><div><span class="eyebrow">BUILD BOOK</span><h2>Blueprints <small>${12-p.usedBlueprints.length}/12</small></h2></div><button class="closeButton" onclick="UI.drawer(null)">×</button></div><p class="drawerLead">Your twelve known village plans. Build from here during Build.</p><div class="buildWallet"><span class="buildWalletLabel">YOUR RESOURCES</span>${resources(p)}</div><div class="blueprintGrid">${f.blueprints.map(bp=>{
       const used=p.usedBlueprints.includes(bp.id),why=interactive?E.buildReason(game,pi,bp):'Not your Build';
       return `<article class="blueprintCard ${used?'used':''}"><div class="blueprintIcon">${buildingIcon(bp)}</div><div><b>${esc(bp.name)}</b><small>${esc(bp.subtype)}</small></div><div class="blueprintStats"><span>${costText(bp.cost)}</span><span>🧱 ${bp.durability}</span><span>✨ ${bp.prosperity}</span>${bp.housing?`<span>🏠 ${bp.housing}</span>`:''}</div><p>${esc(bp.text||'')}</p><button ${used||why?'disabled':''} title="${esc(used?'Used':why)}" onclick="UI.build('${bp.id}')">${used?'Used':bp.upgradeFrom?'Upgrade':'Build'}</button></article>`;
     }).join('')}</div>`;
@@ -349,7 +349,7 @@
     if(!game){app.innerHTML=setupScreen();return;}
     const top=game.mode==='ai'?game.aiIndex:1-game.active,bottom=game.mode==='ai'?humanIndex():game.active;
     const enemy=game.players[top],home=game.players[bottom];
-    app.innerHTML=`<div class="client"><header class="tableTopbar"><div class="brandBlock"><div class="brand">Hearth & Hollow</div><span>Client v0.7.6 · Rules v0.6.2</span></div>${phaseStrip()}<div class="turnBlock"><small>Round ${E.currentRound(game)} · Turn ${game.turnNo}</small><b>${esc(game.players[game.active].name)} · ${game.phase}</b></div><div class="topControls">${utilityButtons()}${controls()}<button class="resetButton" onclick="UI.reset()">↺</button></div></header>${toast?`<div class="toast">${esc(toast)}</div>`:''}<main class="tableSurface">${playerBanner(enemy,top,true)}${villageZone(enemy,top,true)}${fieldZone(enemy,top,true)}<div class="trialDivider"><i></i><span>❄ FROST TRIAL ❄</span><i></i></div>${combatPanel()}${fieldZone(home,bottom,false)}${villageZone(home,bottom,false)}${playerBanner(home,bottom,false)}</main>${handPanel()}${drawerPanel()}${harvestOverlay()}${winnerOverlay()}</div>`;
+    app.innerHTML=`<div class="client"><header class="tableTopbar"><div class="brandBlock"><div class="brand">Hearth & Hollow</div><span>Client v0.7.7 · Rules v0.6.2</span></div>${phaseStrip()}<div class="turnBlock"><small>Round ${E.currentRound(game)} · Turn ${game.turnNo}</small><b>${esc(game.players[game.active].name)} · ${game.phase}</b></div><div class="topControls">${utilityButtons()}${controls()}<button class="resetButton" onclick="UI.reset()">↺</button></div></header>${toast?`<div class="toast">${esc(toast)}</div>`:''}<main class="tableSurface">${playerBanner(enemy,top,true)}${villageZone(enemy,top,true)}${fieldZone(enemy,top,true)}<div class="trialDivider"><i></i><span>❄ FROST TRIAL ❄</span><i></i></div>${combatPanel()}${fieldZone(home,bottom,false)}${villageZone(home,bottom,false)}${playerBanner(home,bottom,false)}</main>${handPanel()}${drawerPanel()}${harvestOverlay()}${winnerOverlay()}</div>`;
   }
 
   window.UI={
@@ -413,7 +413,7 @@
 
   function syncVersion(){
     const el=document.querySelector('.brandBlock > span');
-    if(el&&el.textContent!=='Client v0.7.6 · Rules v0.6.2')el.textContent='Client v0.7.6 · Rules v0.6.2';
+    if(el&&el.textContent!=='Client v0.7.7 · Rules v0.6.2')el.textContent='Client v0.7.7 · Rules v0.6.2';
   }
 
   function flushAppObservers(){
@@ -446,7 +446,7 @@
     fallback.observe(app,{childList:true,subtree:false});
   }
 
-  window.HNH_UI_COORDINATOR={flush:queueFlush,version:'0.7.6'};
+  window.HNH_UI_COORDINATOR={flush:queueFlush,version:'0.7.7'};
   syncVersion();
 })();
 
@@ -613,7 +613,7 @@
     fieldRail.classList.toggle('drawLow', typeof lastFieldCount === 'number' && lastFieldCount <= 8);
 
     const brandVersion = document.querySelector('.brandBlock > span');
-    if (brandVersion) brandVersion.textContent = 'Client v0.7.6 · Rules v0.6.2';
+    if (brandVersion) brandVersion.textContent = 'Client v0.7.7 · Rules v0.6.2';
   }
 
   function syncEnhancements() {
@@ -963,7 +963,7 @@
     positionRails();
     syncTutorial();
     const brandVersion=document.querySelector('.brandBlock > span');
-    if(brandVersion)brandVersion.textContent='Client v0.7.6 · Rules v0.6.2';
+    if(brandVersion)brandVersion.textContent='Client v0.7.7 · Rules v0.6.2';
   }
 
   installDrag(fieldRail);
@@ -1061,7 +1061,7 @@
     ensureSetupLinks();
     ensureGameLinks();
     const brandVersion=document.querySelector('.brandBlock > span');
-    if(brandVersion)brandVersion.textContent='Client v0.7.6 · Rules v0.6.2';
+    if(brandVersion)brandVersion.textContent='Client v0.7.7 · Rules v0.6.2';
   }
 
   const app=document.getElementById('app');
@@ -1100,7 +1100,7 @@
 
   function syncVersion(){
     const el=document.querySelector('.brandBlock > span');
-    if(el)el.textContent='Client v0.7.6 · Rules v0.6.2';
+    if(el)el.textContent='Client v0.7.7 · Rules v0.6.2';
   }
 
   function sync(){
@@ -1135,5 +1135,105 @@
   const observer=new MutationObserver(()=>requestAnimationFrame(sync));
   observer.observe(app,{childList:true,subtree:true});
   window.HNH_ABILITY_UI={sync,choose};
+  sync();
+})();
+
+
+/* ===== Hearthstep tabletop fidget ===== */
+(() => {
+  const app=document.getElementById('app');
+  if(!app)return;
+
+  const trail=document.createElement('div');
+  trail.className='hearthstepTrail';
+  trail.setAttribute('aria-label','Hearthstep fidget. No gameplay effect.');
+  trail.innerHTML=`
+    <div class="hearthstepTitle"><b>Hearthstep</b><small>fidget · no game effect</small></div>
+    <div class="hearthstepCourse" role="group" aria-label="Hearthstep trail">
+      <button class="hearthstepStep" type="button" aria-label="Hop to stump">🪵</button>
+      <button class="hearthstepStep" type="button" aria-label="Hop to stone">🪨</button>
+      <button class="hearthstepStep" type="button" aria-label="Hop to mushroom">🍄</button>
+      <button class="hearthstepStep" type="button" aria-label="Hop to moss">🌿</button>
+      <span class="hearthstepAcorn" role="button" tabindex="0" aria-label="Little acorn. Drag it or use arrow keys.">🌰</span>
+    </div>`;
+  document.body.appendChild(trail);
+
+  const course=trail.querySelector('.hearthstepCourse');
+  const acorn=trail.querySelector('.hearthstepAcorn');
+  const steps=[...trail.querySelectorAll('.hearthstepStep')];
+  let position=0;
+  let dragging=false;
+
+  function stepCenter(index){
+    const step=steps[index],cr=course.getBoundingClientRect(),sr=step.getBoundingClientRect();
+    return {x:sr.left-cr.left+sr.width/2,y:sr.top-cr.top+sr.height/2};
+  }
+
+  function place(index,{hop=true}={}){
+    position=Math.max(0,Math.min(steps.length-1,index));
+    const {x,y}=stepCenter(position);
+    acorn.style.left=`${x}px`;
+    acorn.style.top=`${y}px`;
+    steps.forEach((step,i)=>step.classList.toggle('landed',i===position));
+    if(hop){
+      acorn.classList.remove('hop');
+      void acorn.offsetWidth;
+      acorn.classList.add('hop');
+      steps[position].classList.remove('tap');
+      void steps[position].offsetWidth;
+      steps[position].classList.add('tap');
+    }
+  }
+
+  steps.forEach((step,index)=>step.addEventListener('click',()=>place(index)));
+
+  acorn.addEventListener('pointerdown',event=>{
+    dragging=true;
+    acorn.classList.add('dragging');
+    event.preventDefault();
+  });
+
+  document.addEventListener('pointermove',event=>{
+    if(!dragging)return;
+    const r=course.getBoundingClientRect();
+    const x=Math.max(12,Math.min(r.width-12,event.clientX-r.left));
+    const y=Math.max(10,Math.min(r.height-10,event.clientY-r.top));
+    acorn.style.left=`${x}px`;
+    acorn.style.top=`${y}px`;
+  });
+
+  function finishDrag(event){
+    if(!dragging)return;
+    dragging=false;
+    acorn.classList.remove('dragging');
+    const r=course.getBoundingClientRect();
+    const x=event.clientX-r.left;
+    let best=0,bestDist=Infinity;
+    steps.forEach((_,i)=>{
+      const d=Math.abs(stepCenter(i).x-x);
+      if(d<bestDist){bestDist=d;best=i;}
+    });
+    place(best);
+  }
+  document.addEventListener('pointerup',finishDrag);
+  document.addEventListener('pointercancel',finishDrag);
+
+  acorn.addEventListener('keydown',event=>{
+    if(event.key==='ArrowLeft'||event.key==='ArrowRight'){
+      event.preventDefault();
+      place(position+(event.key==='ArrowRight'?1:-1));
+    }else if(event.key==='Enter'||event.key===' '){
+      event.preventDefault();
+      place(position);
+    }
+  });
+
+  function sync(){
+    const inGame=Boolean(document.querySelector('.client'));
+    trail.classList.toggle('visible',inGame);
+    if(inGame)requestAnimationFrame(()=>place(position,{hop:false}));
+  }
+  window.addEventListener('resize',()=>{if(trail.classList.contains('visible'))place(position,{hop:false});});
+  new MutationObserver(sync).observe(app,{childList:true,subtree:true});
   sync();
 })();

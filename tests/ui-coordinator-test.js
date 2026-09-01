@@ -3,15 +3,16 @@ const assert=require('assert');
 
 const html=fs.readFileSync('index.html','utf8');
 const client=fs.readFileSync('client.js','utf8');
+const styles=fs.readFileSync('styles.css','utf8');
 
-assert(html.includes('styles.css?v=076'),'styles.css must be the single stylesheet');
-assert(html.includes('data.js?v=076')&&html.includes('engine.js?v=076')&&html.includes('client.js?v=076'),'consolidated runtime files are not wired');
+assert(html.includes('styles.css?v=077'),'styles.css must be the single stylesheet');
+assert(html.includes('data.js?v=077')&&html.includes('engine.js?v=077')&&html.includes('client.js?v=077'),'consolidated runtime files are not wired');
 assert((html.match(/<script src=/g)||[]).length===3,'index.html should load exactly three runtime scripts');
 assert((html.match(/rel="stylesheet"/g)||[]).length===1,'index.html should load exactly one stylesheet');
 assert(client.includes('CoordinatedMutationObserver'),'coordinated observer shim missing from consolidated client');
 assert(client.includes('appObservers'),'single app observer registry missing');
-assert(client.includes("version:'0.7.6'"),'coordinator version missing');
-assert(html.includes('Tabletop Client v0.7.6'),'presentation version not bumped');
+assert(client.includes("version:'0.7.7'"),'coordinator version missing');
+assert(html.includes('Tabletop Client v0.7.7'),'presentation version not bumped');
 
 const retired=[
   'client-v062.js','ui-coordinator.js','tabletop-interactions.js','tabletop-deck-polish.js','social-links.js','ability-ui.js',
@@ -38,3 +39,9 @@ console.log('✓ Hearthkeeper identity and AI skill/pacing controls');
 assert(client.includes('AI Pace'),'AI pace should be separate from difficulty');
 assert(client.includes('View Hearthkeeper card'),'Hearthkeeper reference access missing');
 console.log('✓ Hearthkeeper identity and AI skill/pacing controls');
+
+assert(client.includes('buildWallet')&&client.includes('YOUR RESOURCES'),'Build Book must show the active player resource wallet');
+assert(styles.includes('.buildWallet'),'Build Book resource wallet styling missing');
+assert(client.includes('Hearthstep tabletop fidget')&&client.includes('hearthstepTrail'),'Hearthstep fidget runtime missing');
+assert(styles.includes('.hearthstepTrail')&&styles.includes('@keyframes hearthstepHop'),'Hearthstep fidget styling/animation missing');
+console.log('✓ Build Book resource wallet and Hearthstep fidget');
