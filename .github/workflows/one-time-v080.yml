@@ -28,7 +28,8 @@ jobs:
           p.write_text(s[:cut])
           PY
           python tools/v080_refactor.py
-          python -c "from pathlib import Path; p=Path('tests/ui-coordinator-test.js'); s=p.read_text().replace('v=079','v=080').replace('v0.7.9','v0.8.0'); s += \"\\nassert(client.includes('combatLinkOverlay'),'persistent combat arrow overlay missing');\\nassert(client.includes('combatBlockPath'),'blue block arrow path missing');\\nassert(client.includes('blockDraggable'),'direct block dragging missing');\\nassert(client.includes('musterIdentity')&&client.includes('musterRulesText'),'Muster identity cleanup missing');\\nconsole.log('✓ persistent attack/block arrows and clearer Muster identity');\\n\"; p.write_text(s)"
+          sed -i 's/v=079/v=080/g; s/v0\.7\.9/v0.8.0/g' tests/*.js
+          python -c "from pathlib import Path; p=Path('tests/ui-coordinator-test.js'); s=p.read_text(); s += \"\\nassert(client.includes('combatLinkOverlay'),'persistent combat arrow overlay missing');\\nassert(client.includes('combatBlockPath'),'blue block arrow path missing');\\nassert(client.includes('blockDraggable'),'direct block dragging missing');\\nassert(client.includes('musterIdentity')&&client.includes('musterRulesText'),'Muster identity cleanup missing');\\nconsole.log('✓ persistent attack/block arrows and clearer Muster identity');\\n\"; p.write_text(s)"
       - run: |
           node tests/smoke-test.js
           node tests/rules-test.js
