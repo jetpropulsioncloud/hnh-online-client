@@ -27,6 +27,8 @@ jobs:
         run: node rules-patch-test.js
       - name: Run v0.6.2 card ability completion gate
         run: node ability-completion-test.js
+      - name: Run card ability timing and empty-zone gate
+        run: node ability-edge-test.js
       - name: Check tabletop interaction scripts
         run: |
           node --check tabletop-interactions.js
