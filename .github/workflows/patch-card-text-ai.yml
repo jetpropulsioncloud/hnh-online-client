@@ -21,6 +21,7 @@ jobs:
       - name: Apply patch and test
         run: |
           python3 scripts/patch-card-text-ai.py
+          python3 scripts/fix-test-version.py
           node --check data.js
           node --check engine.js
           node --check client.js
@@ -34,7 +35,7 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git rm scripts/patch-card-text-ai.py
+          git rm scripts/patch-card-text-ai.py scripts/fix-test-version.py
           git add -A
           git commit -m 'Sync card text and improve solo onboarding AI'
           git push origin HEAD:fix/card-text-ai-onboarding
