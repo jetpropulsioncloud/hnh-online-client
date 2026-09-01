@@ -1,0 +1,30 @@
+/* Deck-rail spacing + first-build onboarding coachmark */
+.sideDeckRail{transition:box-shadow .16s ease,opacity .16s ease,border-color .16s ease,filter .16s ease!important}
+.sideDeckRail:hover{transform:translateY(-50%) scale(1.015)!important}
+
+.blueprintCoach{
+  display:none;position:fixed;z-index:49;width:230px;padding:11px 13px;border-radius:13px;
+  background:linear-gradient(180deg,#fff7d8,#f2df9f);color:#334036;border:1px solid #d8b759;
+  box-shadow:0 12px 34px rgba(0,0,0,.3),0 0 24px rgba(255,221,116,.22);pointer-events:none;
+  text-align:left
+}
+.blueprintCoach.show{display:block;animation:coachIn .2s ease-out}
+.blueprintCoach strong{display:block;font:900 15px/1.05 Georgia,serif;color:#4e5f42}
+.blueprintCoach span{display:block;margin-top:4px;font-size:10px;line-height:1.35;font-weight:750;color:#5d5948}
+.blueprintCoach::after{content:'';position:absolute;left:50%;bottom:-9px;width:16px;height:16px;background:#f2df9f;border-right:1px solid #d8b759;border-bottom:1px solid #d8b759;transform:translateX(-50%) rotate(45deg)}
+
+.blueprintDeckRail.newPlayerGuide{
+  border-color:#ffe28a!important;
+  animation:blueprintGuideGlow 1.15s ease-in-out infinite;
+  filter:brightness(1.08)
+}
+.blueprintDeckRail.newPlayerGuide .blueprintStack{animation:blueprintCardNudge 1.15s ease-in-out infinite!important}
+.blueprintDeckRail.newPlayerGuide .buildBookCallout{color:#fff2a9;font-size:8px}
+@keyframes blueprintGuideGlow{
+  0%,100%{box-shadow:0 18px 42px rgba(0,0,0,.32),0 0 0 2px rgba(255,224,126,.24),0 0 18px rgba(255,217,101,.26)}
+  50%{box-shadow:0 20px 48px rgba(0,0,0,.38),0 0 0 5px rgba(255,224,126,.2),0 0 42px rgba(255,217,101,.62)}
+}
+@keyframes blueprintCardNudge{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+@keyframes coachIn{from{opacity:0;transform:translateY(5px) scale(.97)}to{opacity:1;transform:none}}
+
+@media(max-width:1180px){.blueprintCoach{display:none!important}}
