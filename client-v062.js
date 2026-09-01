@@ -34,7 +34,7 @@
   function scheduleAI(){
     clearTimeout(aiTimer);
     if(!game||game.winner||game.mode!=='ai'||game.active!==game.aiIndex)return;
-    if(game.phase==='Block')return; // human defender gets the response window
+    if(game.phase==='Block')return;
     aiTimer=setTimeout(runAI,420);
   }
 
@@ -77,7 +77,8 @@
   }
 
   function chooseAIProduction(p,opts){
-    const prov=opts.find(b=>b.harvest?.provision||b.firstYield?.provision);if(prov&&!E.activeBuildings(p).some(b=>b.production&&(b.harvest?.provision||b.firstYield?.provision)))return prov;
+    const prov=opts.find(b=>b.harvest?.provision||b.firstYield?.provision);
+    if(prov&&!E.activeBuildings(p).some(b=>b.production&&(b.harvest?.provision||b.firstYield?.provision)))return prov;
     return [...opts].sort((a,b)=>{
       const ar=Object.keys(a.harvest||{})[0],br=Object.keys(b.harvest||{})[0];return (p.resources[ar]||0)-(p.resources[br]||0);
     })[0];
@@ -125,7 +126,7 @@
     return `<div class="phaseStrip">${labels.map(l=>`<span class="phasePip ${l===active?'on':''}">${l}</span>`).join('')}</div>`;
   }
 
-  function prosperityBadge(p,pi){
+  function prosperityBadge(p){
     const n=E.prosperity(p),ready=n>=15&&!game.winner;
     return `<div class="prosperityStat ${ready?'prosReady':''}"><span>✨</span><b>${n}<small>/15</small></b><span class="prosLabel">${ready?'Hold until Dawn':'Prosperity'}</span></div>`;
   }
@@ -138,9 +139,9 @@
   function playerBoard(p,pi,top=false){
     const active=pi===game.active;
     const pros=E.prosperity(p);
-    const pending=pros>=15&&!game.winner?`<div class="prosNotice">✨ ${p.name} has ${pros} active Prosperity. This becomes a win only at the start of that player's next Dawn if it stays at 15+.</div>`:'';
+    const pending=pros>=15&&!game.winner?`<div class="prosNotice">✨ ${esc(p.name)} has ${pros} active Prosperity. This becomes a win only at the start of that player's next Dawn if it stays at 15+.</div>`:'';
     const exposed=p.exposed?'<span class="statusDanger">EXPOSED</span>':p.exposurePendingOwnTurn!==null?'<span class="statusWarn">response turn</span>':'';
-    return `<section class="playerBoard ${active?'turnActive':''} ${top?'opponentBoard':''}"><header class="playerTitle"><div><span class="eyebrow">${top?'OPPONENT':'YOUR VILLAGE'} ${active?'· ACTIVE':''}</span><h2>${esc(p.name)} <small>${esc(faction(p).short)}</small></h2><div class="keeper">Hearthkeeper: ${esc(faction(p).hearthkeeper)} · reference only</div></div><div class="headlineStats"><div class="hearthStat"><span>🔥</span><b>${p.hearthseed}<small> HP</small></b>${exposed}</div>${prosperityBadge(p,pi)}</div></header>${resources(p)}${pending}${villageZone(p,pi)}${fieldZone(p,pi)}</section>`;
+    return `<section class="playerBoard ${active?'turnActive':''} ${top?'opponentBoard':''}"><header class="playerTitle"><div><span class="eyebrow">${top?'OPPONENT':'YOUR VILLAGE'} ${active?'· ACTIVE':''}</span><h2>${esc(p.name)} <small>${esc(faction(p).short)}</small></h2><div class="keeper">Hearthkeeper: ${esc(faction(p).hearthkeeper)} · reference only</div></div><div class="headlineStats"><div class="hearthStat"><span>🔥</span><b>${p.hearthseed}<small> HP</small></b>${exposed}</div>${prosperityBadge(p)}</div></header>${resources(p)}${pending}${villageZone(p,pi)}${fieldZone(p,pi)}</section>`;
   }
 
   function villageZone(p,pi){
@@ -166,11 +167,11 @@
 
   function critterCard(p,pi,r){
     const ready=E.residentReady(game,p,r),grit=E.residentGrit(game,p,r,r.blocking),fresh=r.recruitedTurn===game.turnNo&&pi===game.active;
-    const attack=pi===game.active&&isHuman(pi)&&E.canAttack(game,pi,r)?attackAction(p,pi,r):'';
+    const attack=pi===game.active&&isHuman(pi)&&E.canAttack(game,pi,r)?attackAction(pi,r):'';
     return `<article class="critter ${!ready?'inactive':''} ${r.tired?'tired':''} ${r.attacking?'attacking':''} ${r.blocking?'blocking':''}"><div class="cardTop"><b>${esc(r.name)}</b>${r.shield?'<span class="shield">🛡</span>':''}</div><small class="classLine">${(r.musterClasses||[]).join(' · ')}${r.advanced?' · ADVANCED':''}</small><div class="statLine"><span>💪 ${r.might}</span><span>❤️ ${r.damage}/${grit}</span></div><div class="homeLine">🏡 ${esc(p.village.find(b=>b.uid===r.musterUid)?.name||'No home')}</div>${r.tool?`<div class="toolLine">🧰 ${esc(r.tool.name)}</div>`:''}${fresh?'<span class="freshTag">New · can block, cannot attack</span>':''}${attack}</article>`;
   }
 
-  function attackAction(p,pi,r){
+  function attackAction(pi,r){
     const targets=E.legalAttackTargets(game,pi,r);if(!targets.length)return '';
     const sid=`atk-${r.uid}`;
     return `<div class="miniAction attackAction"><select id="${sid}">${targets.map(t=>`<option value="${t.kind==='hearthseed'?'hearthseed':t.uid}">${t.kind==='hearthseed'?'🔥 Hearthseed':esc(t.label)}</option>`).join('')}</select><button onclick="UI.attack(${r.uid},'${sid}')">Declare</button></div>`;
@@ -178,9 +179,9 @@
 
   function handPanel(){
     const pi=humanIndex(),p=game.players[pi];
-    if(game.mode==='ai'&&game.active===game.aiIndex)return `<section class="handPanel panel"><div class="sectionHead"><h3>Your hand <small>${p.hand.length}</small></h3><span class="locked">Opponent turn · Reactions appear below when legal</span></div><div class="handRow">${p.hand.map(c=>handCard(p,pi,c,false)).join('')}</div>${reactionTray(pi)}</section>`;
+    if(game.mode==='ai'&&game.active===game.aiIndex)return `<section class="handPanel panel"><div class="sectionHead"><h3>Your hand <small>${p.hand.length}</small></h3><span class="locked">Opponent turn · Reactions appear below when legal</span></div><div class="handRow">${p.hand.map(c=>handCard(p,pi,c,false)).join('')}</div></section>`;
     const owner=game.mode==='ai'?p:game.players[game.active],ownerPi=game.mode==='ai'?pi:game.active;
-    return `<section class="handPanel panel"><div class="sectionHead"><h3>${game.mode==='ai'?'Your hand':'Active hand'} <small>${owner.hand.length}</small></h3><span>Field Deck ${owner.fieldDeck.length} · Compost ${owner.compost.length}</span></div>${game.phase==='Discard'?`<div class="discardNotice">Rest: discard down to 7. Choose ${owner.hand.length-7} more card${owner.hand.length-7===1?'':'s'}.</div>`:''}<div class="handRow">${owner.hand.map(c=>handCard(owner,ownerPi,c,true)).join('')}</div>${reactionTray(ownerPi)}</section>`;
+    return `<section class="handPanel panel"><div class="sectionHead"><h3>${game.mode==='ai'?'Your hand':'Active hand'} <small>${owner.hand.length}</small></h3><span>Field Deck ${owner.fieldDeck.length} · Compost ${owner.compost.length}</span></div>${game.phase==='Discard'?`<div class="discardNotice">Rest: discard down to 7. Choose ${owner.hand.length-7} more card${owner.hand.length-7===1?'':'s'}.</div>`:''}<div class="handRow">${owner.hand.map(c=>handCard(owner,ownerPi,c,true)).join('')}</div></section>`;
   }
 
   function handCard(p,pi,c,interactive){
@@ -192,8 +193,13 @@
     }else if(interactive&&c.subtype==='Tool'&&game.phase==='Build'&&pi===game.active){
       const rs=p.residents.filter(r=>!r.tool);const sid=`tool-${c.uid}`;
       action=rs.length?`<div class="miniAction"><select id="${sid}">${rs.map(r=>`<option value="${r.uid}">${esc(r.name)}</option>`).join('')}</select><button onclick="UI.tool(${c.uid},'${sid}')">Equip</button></div>`:'<span class="whyDisabled">No Critter can carry this</span>';
+    }else if(interactive&&c.id==='burrow_stores'&&game.phase==='Build'&&pi===game.active){
+      const spend=Object.entries(p.resources).filter(([,n])=>n>0),sid1=`supply-spend-${c.uid}`,sid2=`supply-gain-${c.uid}`;
+      action=spend.length?`<div class="miniAction"><select id="${sid1}">${spend.map(([r])=>`<option value="${r}">${ICON[r]} ${RLABEL[r]}</option>`).join('')}</select><select id="${sid2}"><option value="root">🫚 Root</option><option value="pebble">🪨 Pebble</option></select><button onclick="UI.supply(${c.uid},'${sid1}','${sid2}')">Exchange</button></div>`:'<span class="whyDisabled">No resource to exchange</span>';
     }
-    return `<article class="handCard ${interactive?'':'lockedCard'}"><div class="cardTop"><b>${esc(c.name)}</b>${c.advanced?'<span class="advancedTag">ADV</span>':''}</div><small>${c.type==='Critter'?`Muster — ${(c.musterClasses||[]).join(' | ')`:c.subtype}</small>${c.type==='Critter'?`<div class="statLine"><span>💪 ${c.might}</span><span>❤️ ${c.grit}</span></div>`:`<div class="costLine">Cost ${costText(c.cost)}</div>`}<p>${esc(c.text||'')}</p>${c.flags?.manual?`<span class="manualTag">Manual: ${esc(c.flags.manual)}</span>`:''}${action}</article>`;
+    const subtype=c.type==='Critter'?`Muster — ${(c.musterClasses||[]).join(' | ')}`:c.subtype;
+    const stats=c.type==='Critter'?`<div class="statLine"><span>💪 ${c.might}</span><span>❤️ ${c.grit}</span></div>`:`<div class="costLine">Cost ${costText(c.cost)}</div>`;
+    return `<article class="handCard ${interactive?'':'lockedCard'}"><div class="cardTop"><b>${esc(c.name)}</b>${c.advanced?'<span class="advancedTag">ADV</span>':''}</div><small>${esc(subtype)}</small>${stats}<p>${esc(c.text||'')}</p>${c.flags?.manual&&c.id!=='burrow_stores'?`<span class="manualTag">Manual: ${esc(c.flags.manual)}</span>`:''}${action}</article>`;
   }
 
   function blueprintsPanel(){
@@ -208,11 +214,12 @@
     if(!game.combat.attacks.length&&game.phase!=='Block')return `<section class="panel combatPanel"><div class="sectionHead"><h3>Attack</h3><span>Declare any number of ready Critters, then commit the whole attack.</span></div></section>`;
     const attacker=game.players[game.active],defIndex=1-game.active,defender=game.players[defIndex];
     const humanDefender=isHuman(defIndex),humanAttacker=isHuman(game.active);
+    const canResolve=game.phase==='Block'&&(humanAttacker||humanDefender);
     return `<section class="panel combatPanel"><div class="sectionHead"><h3>Attack declaration</h3><span>${game.combat.committed?'Committed · blockers/reactions before damage':'Still declaring attackers'}</span></div><div class="attackList">${game.combat.attacks.map((a,i)=>{
       const atk=attacker.residents.find(r=>r.uid===a.attackerUid),blk=defender.residents.find(r=>r.uid===a.blockerUid);
       const blockers=game.phase==='Block'&&humanDefender&&!blk?defender.residents.filter(r=>E.canBlock(game,defIndex,r,a)):[];
       return `<div class="attackEntry"><div><b>${esc(atk?.name||'Attacker')}</b><span>→ ${a.target.kind==='hearthseed'?'🔥 Hearthseed':esc(a.target.name)}</span>${a.zeroDamage?'<small>Rootsnared · deals 0</small>':''}${blk?`<small>Blocked by ${esc(blk.name)}</small>`:''}</div>${blockers.length?`<div class="miniAction"><select id="blk-${i}">${blockers.map(r=>`<option value="${r.uid}">${esc(r.name)}</option>`).join('')}</select><button onclick="UI.block(${i})">Block</button></div>`:''}</div>`;
-    }).join('')}</div><div class="combatButtons">${!game.combat.committed&&humanAttacker?'<button onclick="UI.commitAttacks()">Commit attackers</button>':''}${game.phase==='Block'&&humanAttacker||game.phase==='Block'&&humanDefender?'<button class="primaryBtn" onclick="UI.resolveCombat()">Resolve combat</button>':''}</div>${game.phase==='Block'?reactionTray(humanIndex()):''}</section>`;
+    }).join('')}</div><div class="combatButtons">${!game.combat.committed&&humanAttacker?'<button onclick="UI.commitAttacks()">Commit attackers</button>':''}${canResolve?'<button class="primaryBtn" onclick="UI.resolveCombat()">Resolve combat</button>':''}</div>${game.phase==='Block'?reactionTray(humanIndex()):''}</section>`;
   }
 
   function reactionTray(pi){
@@ -268,6 +275,7 @@
     build:id=>doAction(()=>E.build(game,game.active,id)),
     recruit:(uid,sid)=>doAction(()=>E.recruit(game,game.active,uid,+document.getElementById(sid).value)),
     tool:(uid,sid)=>doAction(()=>E.playTool(game,game.active,uid,+document.getElementById(sid).value)),
+    supply:(uid,sid1,sid2)=>doAction(()=>E.playSupply(game,game.active,uid,document.getElementById(sid1).value,document.getElementById(sid2).value)),
     workshop:(buid,tid,rid)=>doAction(()=>E.useWorkshop(game,game.active,buid,+document.getElementById(tid).value,document.getElementById(rid).value)),
     attack:(uid,sid)=>doAction(()=>E.declareAttack(game,game.active,uid,document.getElementById(sid).value==='hearthseed'?'hearthseed':+document.getElementById(sid).value)),
     commitAttacks:()=>doAction(()=>E.commitAttacks(game,game.active)),
