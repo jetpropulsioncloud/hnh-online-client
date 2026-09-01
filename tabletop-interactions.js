@@ -4,6 +4,7 @@
   let focusedCard = null;
   let hoverTimer = null;
   let pinned = false;
+  let spaceHeld = false;
   let lastFieldCount = null;
   let lastCompostCount = null;
   let blueprintRemaining = 12;
@@ -14,7 +15,7 @@
   inspector.innerHTML = `
     <div class="inspectorPanel" role="dialog" aria-label="Card closeup">
       <div class="inspectorTopline">
-        <span class="inspectorHint">Card closeup · Space to pin · Esc to close</span>
+        <span class="inspectorHint">Card closeup · Hold Space for full view · Esc to close</span>
         <button class="inspectorClose" type="button" aria-label="Close card closeup">×</button>
       </div>
       <div class="inspectorBody"></div>
@@ -43,7 +44,7 @@
 
   const helper = document.createElement('div');
   helper.className = 'cardInspectHelper';
-  helper.innerHTML = '<b>Card view</b><span>Hover any card · Space for full closeup</span>';
+  helper.innerHTML = '<b>Card view</b><span>Hover any card · Hold Space for full closeup</span>';
   document.body.appendChild(helper);
 
   const deckNote = document.createElement('div');
@@ -101,11 +102,27 @@
   }
 
   function schedulePeek(card) {
-    if (pinned) return;
+    if (pinned || spaceHeld) return;
     clearTimeout(hoverTimer);
     hoverTimer = setTimeout(() => {
-      if (hoveredCard === card || focusedCard === card) renderInspector(card, 'peek');
+      if (!spaceHeld && (hoveredCard === card || focusedCard === card)) renderInspector(card, 'peek');
     }, 150);
+  }
+
+  function standardizeCategoryIcons() {
+    document.querySelectorAll('.gameCard.critter .artWindow > span').forEach(icon => { icon.textContent = '🐾'; });
+    document.querySelectorAll('.gameCard.building .artWindow > span').forEach(icon => { icon.textContent = '🏡'; });
+    document.querySelectorAll('.blueprintCard .blueprintIcon').forEach(icon => { icon.textContent = '🏡'; });
+    document.querySelectorAll('.gameCard.handCard .artWindow').forEach(art => {
+      const icon = art.querySelector(':scope > span');
+      const subtype = art.querySelector('small')?.textContent || '';
+      if (!icon) return;
+      if (/Muster/i.test(subtype)) icon.textContent = '🐾';
+      else if (/Tool/i.test(subtype)) icon.textContent = '🧰';
+      else if (/Reaction/i.test(subtype)) icon.textContent = '⚡';
+      else if (/Supply/i.test(subtype)) icon.textContent = '🎒';
+      else icon.textContent = '🍃';
+    });
   }
 
   function makeCardsFocusable() {
@@ -114,7 +131,7 @@
       card.setAttribute('data-card-inspectable', 'true');
       if (!card.getAttribute('aria-label')) {
         const name = card.querySelector('.cardTop b, :scope > div > b, :scope > b')?.textContent?.trim();
-        if (name) card.setAttribute('aria-label', `${name}. Press Space for card closeup.`);
+        if (name) card.setAttribute('aria-label', `${name}. Hold Space for card closeup.`);
       }
     });
   }
@@ -142,7 +159,7 @@
     fieldRail.classList.toggle('drawLow', typeof lastFieldCount === 'number' && lastFieldCount <= 8);
 
     const brandVersion = document.querySelector('.brandBlock > span');
-    if (brandVersion) brandVersion.textContent = 'Client v0.6.2 · Rules v0.6.2';
+    if (brandVersion) brandVersion.textContent = 'Client v0.6.3 · Rules v0.6.2';
   }
 
   function syncEnhancements() {
@@ -151,6 +168,7 @@
     blueprintRail.classList.toggle('visible', inGame);
     helper.classList.toggle('visible', inGame);
     if (!inGame) hideInspector(true);
+    standardizeCategoryIcons();
     makeCardsFocusable();
     readDeckCounts();
   }
@@ -192,6 +210,7 @@
     const tag = event.target?.tagName?.toLowerCase();
     const typing = tag === 'input' || tag === 'textarea' || tag === 'select' || event.target?.isContentEditable;
     if (event.key === 'Escape' && !typing) {
+      spaceHeld = false;
       hideInspector(true);
       return;
     }
@@ -199,14 +218,30 @@
       const card = currentCard();
       if (!card) return;
       event.preventDefault();
-      if (pinned) hideInspector(true);
-      else renderInspector(card, 'pinned');
+      if (event.repeat || spaceHeld) return;
+      spaceHeld = true;
+      renderInspector(card, 'pinned');
     }
   });
 
-  inspector.querySelector('.inspectorClose').addEventListener('click', () => hideInspector(true));
-  inspector.addEventListener('click', event => {
-    if (pinned && event.target === inspector) hideInspector(true);
+  document.addEventListener('keyup', event => {
+    if (event.code !== 'Space' && event.key !== ' ') return;
+    if (!spaceHeld) return;
+    spaceHeld = false;
+    hideInspector(true);
+    const card = currentCard();
+    if (card) schedulePeek(card);
+  });
+
+  window.addEventListener('blur', () => {
+    if (!spaceHeld) return;
+    spaceHeld = false;
+    hideInspector(true);
+  });
+
+  inspector.querySelector('.inspectorClose').addEventListener('click', () => {
+    spaceHeld = false;
+    hideInspector(true);
   });
 
   blueprintRail.addEventListener('click', () => {
