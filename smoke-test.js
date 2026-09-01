@@ -1,5 +1,6 @@
 'use strict';
 
+const fs = require('fs');
 global.window = {};
 require('./data.js');
 
@@ -50,27 +51,12 @@ console.log('✓ six Muster Classes represented');
 console.log('✓ Critters have no Housing stat and occupy 1 slot in engine logic');
 console.log('✓ Advanced roster: Juniper, Briarhart, Clem');
 
-// Minimal DOM shim to catch startup/runtime regressions without browser dependencies.
-const nodes = new Map();
-const app = { innerHTML: '' };
-global.document = {
-  getElementById(id) {
-    if (id === 'app') return app;
-    if (!nodes.has(id)) nodes.set(id, { id, onclick: null, value: '', innerHTML: '', addEventListener(){} });
-    return nodes.get(id);
-  },
-  querySelectorAll() { return []; },
-};
-global.confirm = () => false;
-global.prompt = (_msg, fallback='') => fallback;
-global.alert = () => {};
-const oldRandom = Math.random;
-Math.random = () => 0.1;
-require('./app.js');
-assert(typeof nodes.get('choose-as')?.onclick === 'function', 'client setup buttons did not bind');
-nodes.get('choose-as').onclick();
-assert(app.innerHTML.includes('CLIENT BETA v0.5.0'), 'client did not render v0.5.0');
-assert(app.innerHTML.includes('Provision costs may be paid'), 'Provision substitution UI note missing');
-assert(app.innerHTML.includes('Blueprint Deck'), 'Blueprint UI missing');
-Math.random = oldRandom;
-console.log('✓ client startup/runtime render smoke');
+// Static runtime wiring smoke. The legacy app.js client was retired; index.html
+// must now point at the current rules-first client and coordinated UI layer.
+const html = fs.readFileSync('index.html', 'utf8');
+assert(html.includes('client-v062.js'), 'current client-v062.js is not loaded');
+assert(html.includes('engine-v062.js'), 'v0.6.2 engine is not loaded');
+assert(html.includes('ui-coordinator.js'), 'UI coordinator is not loaded');
+assert(!html.includes('src="app.js"'), 'legacy app.js must not be loaded');
+assert(html.includes('Tabletop Client v0.7.3'), 'client presentation version mismatch');
+console.log('✓ current client/runtime wiring smoke');
