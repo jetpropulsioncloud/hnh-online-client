@@ -15,7 +15,18 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: python tools/v080_refactor.py
+      - name: Fix replacement callbacks and run refactor
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('tools/v080_refactor.py')
+          s=p.read_text()
+          s=s.replace("building+'\\n  function workshopAction',s,count=1,flags=re.S)","lambda _m: building+'\\n  function workshopAction',s,count=1,flags=re.S)")
+          s=s.replace("critter+'\\n  function handPanel',s,count=1,flags=re.S)","lambda _m: critter+'\\n  function handPanel',s,count=1,flags=re.S)")
+          s=s.replace("combat+'\\n  function reactionTray',s,count=1,flags=re.S)","lambda _m: combat+'\\n  function reactionTray',s,count=1,flags=re.S)")
+          p.write_text(s)
+          PY
+          python tools/v080_refactor.py
       - run: |
           node tests/smoke-test.js
           node tests/rules-test.js
@@ -27,7 +38,7 @@ jobs:
       - run: |
           rm tools/v080_refactor.py .github/workflows/one-time-v080.yml
           git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git config user.email 41898282+jetpropulsioncloud@users.noreply.github.com
           git add -A
           git commit -m "Add persistent combat arrows and clearer Muster cards"
           git push origin HEAD:feat/combat-arrows-muster-clarity-v080
