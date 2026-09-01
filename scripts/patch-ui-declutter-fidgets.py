@@ -64,6 +64,7 @@ client,n=re.subn(r"\n\n/\* ===== Hearthstep tabletop fidget ===== \*/.*\Z","",cl
 if n!=1: raise SystemExit('old Hearthstep block not removed')
 
 client=client.replace('v0.7.7','v0.7.8')
+client=client.replace("version:'0.7.7'","version:'0.7.8'")
 client_path.write_text(client)
 
 styles_path=Path('styles.css')
