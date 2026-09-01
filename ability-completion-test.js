@@ -2,7 +2,7 @@ const fs=require('fs');
 const vm=require('vm');
 const assert=require('assert');
 global.window=global;
-for(const file of ['data.js','data-v062-completion.js','engine-v062.js','engine-rules-patches.js','ability-completion.js'])vm.runInThisContext(fs.readFileSync(file,'utf8'),{filename:file});
+for(const file of ['data.js','data-v062-completion.js','engine-v062.js','engine-rules-patches.js','ability-completion.js','ability-completion-fixes.js'])vm.runInThisContext(fs.readFileSync(file,'utf8'),{filename:file});
 const E=global.HNH_ENGINE,D=global.HNH_DATA.decks;
 const rng=()=>0.01;
 let uid=900000;
@@ -44,6 +44,10 @@ ok('Bramble Climbing Kit gives Eager and permits attacking the recruit turn',()=
 
 ok('Stocked Squirrel Armory gives housed Squirrels +1 Might',()=>{
   const g=fresh(),p=setupBuild(g,0);const m=building('AS','stocked_squirrel_armory');p.village.push(m);const r=resident('AS','squirrel_raider',m.uid);p.residents.push(r);E.refreshAbilityMarkers(g);assert.equal(E.residentMight(r,{kind:'building'}),3,'1 base +1 Raider vs Building +1 Stocked Squirrel');
+});
+
+ok('Stocked Squirrel Armory Might bonus applies to blocker combat damage too',()=>{
+  const g=fresh();setupBuild(g,1);const atkP=g.players[1],defP=g.players[0];const am=building('RP','rabbit_warren'),dm=building('AS','stocked_squirrel_armory');atkP.village.push(am);defP.village.push(dm);const atk=resident('RP','rootling_mole',am.uid),block=resident('AS','squirrel_raider',dm.uid);atkP.residents.push(atk);defP.residents.push(block);E.refreshAbilityMarkers(g);g.phase='Attack';assert(E.declareAttack(g,1,atk.uid,'hearthseed').ok);assert(E.commitAttacks(g,1).ok);assert(E.assignBlock(g,0,block.uid,0).ok);assert(E.resolveCombat(g).ok);assert.equal(atk.damage,2,'Stocked Squirrel should counter for 2 Might');
 });
 
 ok('Lantern Scout Nook shows top two Field Deck cards and lets player choose top/bottom order',()=>{
