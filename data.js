@@ -7,7 +7,8 @@ window.HNH_DATA = (() => {
 
   const decks = {
     AS: {
-      key:'AS', name:'Porchlight — Acorn / Sap', short:'Acorn / Sap', hearthkeeper:'Hazel Underleaf',
+      key:'AS', name:'Hazel Underleaf', short:'Porchlight · Acorn / Sap', hearthkeeper:'Hazel Underleaf', tradition:'Porchlight', archetype:'Fast, scrappy pressure',
+      hearthkeeperCard:{id:'hazel_underleaf',name:'Hazel Underleaf',type:'Hearthkeeper',subtitle:'Porchlight Hearthkeeper',text:'By dusk, Hazel has counted every lantern twice and every neighbor at least once.',reference:'Flavor/reference only — no gameplay ability in v0.6.2.'},
       resources:['acorn','sap','provision'],
       founding: B('porchlight_acorn_pantry','Porchlight Acorn Pantry','Founding Production',{},5,1,{
         production:true, harvestChoice:['acorn','sap'], text:'Harvest: gain 🥜 or 💦.'
@@ -41,14 +42,15 @@ window.HNH_DATA = (() => {
         B('brambleworks_hideout','Brambleworks Hideout','Muster',{acorn:1},4,2,{muster:true,musterClass:'Bramble',housing:3,recruitCost:{acorn:1},text:'Muster — Bramble. Recruit: pay 🥜.'}),
         B('resin_hedge','Resin Hedge','Defense',{sap:1,provision:1},5,2,{reactionAccess:true,text:'Reaction Access. First time each round another Building you control would take damage, prevent 1.',manual:'Flat prevention remains manual in this client pass'}),
         B('acorn_tool_shed','Acorn Tool Shed','Utility',{acorn:1,provision:1},4,2,{toolAccess:true,text:'Tool Access — equip no more than one Tool each turn.'}),
-        B('stocked_squirrel_armory','Stocked Squirrel Armory','Muster Upgrade',{acorn:1,sap:1},5,3,{upgradeFrom:'squirrel_armory',muster:true,musterClass:'Scurry',housing:5,recruitCost:{acorn:1},upgradeGain:{provision:1},text:'Muster — Scurry. Recruit: pay 🥜. When you upgrade to this, gain 📦.'}),
+        B('stocked_squirrel_armory','Stocked Squirrel Armory','Muster Upgrade',{acorn:1,sap:1},5,3,{upgradeFrom:'squirrel_armory',muster:true,musterClass:'Scurry',housing:5,recruitCost:{acorn:1},squirrelMightBonus:1,text:'Muster — Scurry. Recruit: pay 🥜. Squirrels housed here get +1 💪.'}),
         B('lantern_scout_nook','Lantern Scout Nook','Muster Upgrade',{sap:1,provision:1},5,3,{upgradeFrom:'porchlight_scout_nook',muster:true,musterClass:'Lantern',housing:5,recruitCost:{sap:1},text:'Muster — Lantern. First Mouse or Bird recruited here each round lets you look at the top 2 Field Deck cards.',manual:'Species trigger remains manual'}),
         B('hidden_brambleworks','Hidden Brambleworks','Muster Upgrade',{acorn:1,sap:1},5,3,{upgradeFrom:'brambleworks_hideout',muster:true,musterClass:'Bramble',housing:5,recruitCost:{acorn:1},text:'Muster — Bramble. Chipmunks housed here get +1 ❤️.',manual:'Chipmunk bonus remains manual'}),
         B('great_clover_hearthring','Great Clover Hearthring','Peaceful Landmark',{sap:2,provision:2},6,5,{peaceful:true,reactionAccess:true,text:'Peaceful. Reaction Access. Once each round, save a defeated Critter in its Muster, tired at ❤️−1 damage.',manual:'Save trigger remains manual'})
       ]
     },
     RP: {
-      key:'RP', name:'Stonecap — Root / Pebble', short:'Root / Pebble', hearthkeeper:'Mosswick Grubroot',
+      key:'RP', name:'Mosswick Grubroot', short:'Stonecap · Root / Pebble', hearthkeeper:'Mosswick Grubroot', tradition:'Stonecap', archetype:'Sturdy, recursive defense',
+      hearthkeeperCard:{id:'mosswick_grubroot',name:'Mosswick Grubroot',type:'Hearthkeeper',subtitle:'Stonecap Hearthkeeper',text:'When the mornings turn chilly, Mosswick starts stuffing the burrow with leaves until there’s barely room for himself!',reference:'Flavor/reference only — no gameplay ability in v0.6.2.'},
       resources:['root','pebble','provision'],
       founding: B('stonecap_root_cellar','Stonecap Root Cellar','Founding Production',{},4,1,{production:true,harvestChoice:['root','pebble'],text:'Harvest: gain 🫚 or 🪨. The first time each round another Building you control would take attack damage, prevent 1 of it.',manual:'Founding prevention remains manual'}),
       field:[
@@ -115,8 +117,8 @@ window.HNH_DATA = (() => {
   clean(byId('AS','hidden_brambleworks'));
 
   const stocked=byId('AS','stocked_squirrel_armory');
-  clean(stocked,{text:'Muster — Scurry. Recruit: pay 🥜. When you upgrade to this, gain 📦.',upgradeGain:{provision:1}});
-  delete stocked.squirrelMightBonus;
+  clean(stocked,{text:'Muster — Scurry. Recruit: pay 🥜. Squirrels housed here get +1 💪.',squirrelMightBonus:1});
+  delete stocked.upgradeGain;
 
   clean(byId('AS','lantern_scout_nook'),{
     text:'Muster — Lantern. First Mouse or Bird recruited here each round lets you look at the top 2 Field Deck cards. Put one on top and one on the bottom.',
