@@ -1,0 +1,21 @@
+/* Hearth & Hollow v0.7.0 reusable card/target choice overlay */
+.abilityChoiceBack{position:fixed;inset:0;z-index:140;display:grid;place-items:center;padding:22px;background:rgba(22,26,21,.78);backdrop-filter:blur(5px)}
+.abilityChoicePanel{width:min(760px,96vw);max-height:88vh;overflow:auto;padding:20px;border:1px solid #b99d69;border-radius:20px;background:linear-gradient(180deg,#fffaf0,#eee3cc);box-shadow:0 24px 60px rgba(15,17,13,.48);color:#2b332b}
+.abilityChoiceEyebrow{font-size:9px;font-weight:900;letter-spacing:.13em;text-transform:uppercase;color:#7d6e55}
+.abilityChoicePanel h2{margin:4px 0 5px;font:800 25px/1 Georgia,serif;color:#29392f}
+.abilityChoicePanel>p{margin:0 0 14px;color:#5f645b;font-size:11px}
+.abilityOptions{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.abilityOption{min-height:64px;padding:10px;background:#faf1dc;color:#2f392f;border:1px solid #c1ad82;border-radius:12px;text-align:left;box-shadow:0 4px 10px rgba(56,45,30,.09);transition:transform .14s ease,box-shadow .14s ease,border-color .14s ease}
+.abilityOption:hover{transform:translateY(-2px);border-color:#738664;box-shadow:0 8px 16px rgba(48,43,32,.16)}
+.abilityOptionCard{min-height:210px;padding:0;overflow:hidden;display:flex;flex-direction:column}
+.abilityCardArt{height:72px;display:grid;place-items:center;background:radial-gradient(circle at 50% 28%,#f5e7bb,#c8ac6d 76%);border-bottom:1px solid #aa9469;font-size:31px}
+.abilityCardBody{padding:9px;display:flex;flex:1;flex-direction:column;gap:5px}
+.abilityCardBody b{font:800 13px/1.1 Georgia,serif}
+.abilityCardBody small{font-size:8px;color:#756e60;text-transform:uppercase;letter-spacing:.05em}
+.abilityCardBody p{margin:3px 0 0;font-size:9px;line-height:1.32;color:#4c514a}
+.abilityCardStats{display:flex;gap:5px;flex-wrap:wrap}
+.abilityCardStats span{padding:2px 5px;border:1px solid #d2c09a;border-radius:999px;background:#f4ead1;font-size:8px;font-weight:900}
+.abilityOptionSkip{grid-column:1/-1;min-height:42px;text-align:center;background:#ebe2d1;color:#665f52;border-style:dashed}
+.abilityChoiceHint{margin-top:11px;font-size:8px;color:#7b7467;text-align:center}
+body.abilityChoiceOpen{overflow:hidden}
+@media(max-width:620px){.abilityChoiceBack{padding:9px}.abilityChoicePanel{padding:14px}.abilityOptions{grid-template-columns:1fr 1fr}.abilityOptionCard{min-height:185px}.abilityCardArt{height:58px}}
