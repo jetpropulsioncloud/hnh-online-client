@@ -53,6 +53,8 @@
   function sync(){
     ensureSetupLinks();
     ensureGameLinks();
+    const brandVersion=document.querySelector('.brandBlock > span');
+    if(brandVersion)brandVersion.textContent='Client v0.6.7 · Rules v0.6.2';
   }
 
   const app=document.getElementById('app');
