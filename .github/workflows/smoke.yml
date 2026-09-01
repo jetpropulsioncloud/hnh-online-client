@@ -23,3 +23,5 @@ jobs:
         run: node smoke-test.js
       - name: Run v0.6.2 rule regression tests
         run: node rules-test.js
+      - name: Run attack sequencing regression tests
+        run: node rules-patch-test.js
