@@ -188,7 +188,7 @@
     const active=pi===game.active,pros=E.prosperity(p);
     const exposed=p.exposed?'<span class="statusDanger">EXPOSED</span>':p.exposurePendingOwnTurn!==null?'<span class="statusWarn">Response turn</span>':'';
     const pending=pros>=15&&!game.winner?`<span class="dawnHold">✨ ${pros} — hold until Dawn</span>`:'';
-    return `<section class="playerBanner ${top?'opponentBanner':'homeBanner'} ${active?'turnActive':''}"><div class="identity"><span class="sideLabel">${top?'OPPONENT':'YOU'}${active?' · ACTIVE':''}</span><b>${esc(faction(p).hearthkeeper)}</b><button class="keeperChip" onclick="UI.drawer('hearthkeeper:${pi}')">🔥 View Hearthkeeper card</button><small>${esc(faction(p).short)}</small></div><div class="bannerResources">${resources(p)}</div><div class="bannerStats"><div class="hearthMedallion"><span>🔥</span><b>${p.hearthseed}</b><small>HP</small>${exposed}</div>${prosperityBadge(p)}${pending}</div></section>`;
+    return `<section class="playerBanner ${top?'opponentBanner':'homeBanner'} ${active?'turnActive':''}"><div class="identity"><span class="sideLabel">${top?'OPPONENT':'YOU'}${active?' · ACTIVE':''}</span><b>${esc(faction(p).hearthkeeper)}</b><button class="keeperChip" onclick="UI.drawer('hearthkeeper:${pi}')">🔥 View Hearthkeeper card</button><small>${esc(faction(p).short)}</small></div><div class="bannerResources">${resources(p)}</div><div class="bannerStats"><div class="hearthMedallion" data-hearthseed-player="${pi}"><span>🔥</span><b>${p.hearthseed}</b><small>HP</small>${exposed}</div>${prosperityBadge(p)}${pending}</div></section>`;
   }
 
   function laneTitle(icon,title,note){return `<div class="laneTitle"><span>${icon}</span><b>${title}</b><small>${note}</small></div>`;}
@@ -203,7 +203,7 @@
 
   function buildingCard(p,pi,b){
     const ruined=E.isRuined(b),used=b.muster?E.housingUsed(p,b.uid):0;
-    return `<article class="gameCard building ${ruined?'ruined':''}"><div class="artWindow buildingArt"><span>${buildingIcon(b)}</span><small>${esc(b.subtype)}</small></div><div class="cardFrame"><div class="cardTop"><div><b>${esc(b.name)}</b><small>${ruined?'RUINED · ':''}${esc(b.subtype)}</small></div>${b.shield?'<span class="shield">🛡</span>':''}</div><div class="badgeRow"><span>🧱 ${b.damage}/${b.durability}</span><span>✨ ${ruined?0:b.prosperity||0}</span>${b.muster?`<span>🏠 ${used}/${b.housing}</span>`:''}</div>${b.muster?`<div class="musterLine"><b>${esc(b.musterClass)}</b> Muster · Recruit ${costText(b.recruitCost)}</div>`:''}<p>${esc(b.text||'')}</p>${b.manual?`<span class="manualTag">Manual: ${esc(b.manual)}</span>`:''}${b.rehousingDueOwnTurn!==null&&ruined?'<span class="warnTag">Residents inactive · rehouse by deadline</span>':''}${workshopAction(p,pi,b)}</div></article>`;
+    return `<article class="gameCard building ${ruined?'ruined':''}" data-building-uid="${b.uid}" data-player-index="${pi}" ${b.muster?`data-muster-uid="${b.uid}"`:''} data-attack-building="${b.uid}"><div class="artWindow buildingArt"><span>${buildingIcon(b)}</span><small>${esc(b.subtype)}</small></div><div class="cardFrame"><div class="cardTop"><div><b>${esc(b.name)}</b><small>${ruined?'RUINED · ':''}${esc(b.subtype)}</small></div>${b.shield?'<span class="shield">🛡</span>':''}</div><div class="badgeRow"><span>🧱 ${b.damage}/${b.durability}</span><span>✨ ${ruined?0:b.prosperity||0}</span>${b.muster?`<span>🏠 ${used}/${b.housing}</span>`:''}</div>${b.muster?`<div class="musterLine"><b>${esc(b.musterClass)}</b> Muster · Recruit ${costText(b.recruitCost)}</div>`:''}<p>${esc(b.text||'')}</p>${b.manual?`<span class="manualTag">Manual: ${esc(b.manual)}</span>`:''}${b.rehousingDueOwnTurn!==null&&ruined?'<span class="warnTag">Residents inactive · rehouse by deadline</span>':''}${workshopAction(p,pi,b)}</div></article>`;
   }
 
   function workshopAction(p,pi,b){
@@ -226,21 +226,15 @@
 
   function critterCard(p,pi,r){
     const ready=E.residentReady(game,p,r),grit=E.residentGrit(game,p,r,r.blocking),fresh=r.recruitedTurn===game.turnNo&&pi===game.active;
-    const attack=pi===game.active&&isHuman(pi)&&E.canAttack(game,pi,r)?attackAction(pi,r):'';
-    return `<article class="gameCard critter ${!ready?'inactive':''} ${r.tired?'tired':''} ${r.attacking?'attacking':''} ${r.blocking?'blocking':''}"><div class="artWindow critterArt"><span>${critterIcon(r)}</span><small>${r.advanced?'ADVANCED · ':''}${(r.musterClasses||[]).join(' · ')}</small></div><div class="cardFrame"><div class="cardTop"><b>${esc(r.name)}</b>${r.shield?'<span class="shield">🛡</span>':''}</div><div class="badgeRow critterStats"><span>💪 ${r.might}</span><span>❤️ ${r.damage}/${grit}</span></div><div class="homeLine">🏡 ${esc(p.village.find(b=>b.uid===r.musterUid)?.name||'No home')}</div>${r.tool?`<div class="toolLine">🧰 ${esc(r.tool.name)}</div>`:''}${fresh?'<span class="freshTag">New · can block</span>':''}${attack}</div></article>`;
-  }
-
-  function attackAction(pi,r){
-    const targets=E.legalAttackTargets(game,pi,r);if(!targets.length)return '';
-    const sid=`atk-${r.uid}`;
-    return `<div class="miniAction attackAction"><select id="${sid}">${targets.map(t=>`<option value="${t.kind==='hearthseed'?'hearthseed':t.uid}">${t.kind==='hearthseed'?'🔥 Hearthseed':esc(t.label)}</option>`).join('')}</select><button onclick="UI.attack(${r.uid},'${sid}')">Attack</button></div>`;
+    const canDragAttack=pi===game.active&&isHuman(pi)&&E.canAttack(game,pi,r);
+    return `<article class="gameCard critter ${!ready?'inactive':''} ${r.tired?'tired':''} ${r.attacking?'attacking':''} ${r.blocking?'blocking':''} ${canDragAttack?'attackDraggable':''}" data-resident-uid="${r.uid}" ${canDragAttack?'title="Drag this Critter to an enemy target"':''}><div class="artWindow critterArt"><span>${critterIcon(r)}</span><small>${r.advanced?'ADVANCED · ':''}${(r.musterClasses||[]).join(' · ')}</small></div><div class="cardFrame"><div class="cardTop"><b>${esc(r.name)}</b>${r.shield?'<span class="shield">🛡</span>':''}</div><div class="badgeRow critterStats"><span>💪 ${r.might}</span><span>❤️ ${r.damage}/${grit}</span></div><div class="homeLine">🏡 ${esc(p.village.find(b=>b.uid===r.musterUid)?.name||'No home')}</div>${r.tool?`<div class="toolLine">🧰 ${esc(r.tool.name)}</div>`:''}${fresh?'<span class="freshTag">New · can block</span>':''}${canDragAttack?'<span class="dragHint attackHint">Drag to attack</span>':''}</div></article>`;
   }
 
   function handPanel(){
     const pi=humanIndex(),p=game.players[pi];
-    if(game.mode==='ai'&&game.active===game.aiIndex)return `<section class="handDock"><div class="handHeader"><div><span class="eyebrow">YOUR HAND</span><b>${p.hand.length} cards</b></div><span class="locked">Opponent turn</span></div><div class="handRow">${p.hand.map(c=>handCard(p,pi,c,false)).join('')}</div></section>`;
+    if(game.mode==='ai'&&game.active===game.aiIndex)return `<section class="handDock">${tableFidgets()}<div class="handHeader"><div><span class="eyebrow">YOUR HAND</span><b>${p.hand.length} cards</b></div><span class="locked">Opponent turn</span></div><div class="handRow">${p.hand.map(c=>handCard(p,pi,c,false)).join('')}</div></section>`;
     const owner=game.mode==='ai'?p:game.players[game.active],ownerPi=game.mode==='ai'?pi:game.active;
-    return `<section class="handDock"><div class="handHeader"><div><span class="eyebrow">${game.mode==='ai'?'YOUR HAND':'ACTIVE HAND'}</span><b>${owner.hand.length} cards</b></div><div class="deckCounters"><span>🎴 ${owner.fieldDeck.length}</span><span>🍂 ${owner.compost.length}</span></div></div>${game.phase==='Discard'?`<div class="discardNotice">Rest: discard down to 7 · choose ${owner.hand.length-7} more.</div>`:''}<div class="handRow">${owner.hand.map(c=>handCard(owner,ownerPi,c,true)).join('')}</div></section>`;
+    return `<section class="handDock">${tableFidgets()}<div class="handHeader"><div><span class="eyebrow">${game.mode==='ai'?'YOUR HAND':'ACTIVE HAND'}</span><b>${owner.hand.length} cards</b></div><div class="deckCounters"><span>🎴 ${owner.fieldDeck.length}</span><span>🍂 ${owner.compost.length}</span></div></div>${game.phase==='Discard'?`<div class="discardNotice">Rest: discard down to 7 · choose ${owner.hand.length-7} more.</div>`:''}<div class="handRow">${owner.hand.map(c=>handCard(owner,ownerPi,c,true)).join('')}</div></section>`;
   }
 
   function handArt(c){
@@ -249,11 +243,12 @@
   }
 
   function handCard(p,pi,c,interactive){
-    let action='';
+    let action='',dragClass='',dragAttrs='';
     if(interactive&&game.phase==='Discard'&&pi===game.active)action=`<button class="dangerBtn cardAction" onclick="UI.discard(${c.uid})">Discard</button>`;
     else if(interactive&&c.type==='Critter'&&game.phase==='Build'&&pi===game.active){
-      const ms=E.legalMusters(game,pi,c);const sid=`rec-${c.uid}`;
-      action=ms.length?`<div class="miniAction"><select id="${sid}">${ms.map(m=>`<option value="${m.uid}">${esc(m.name)} · ${E.housingUsed(p,m.uid)}/${m.housing}</option>`).join('')}</select><button onclick="UI.recruit(${c.uid},'${sid}')">Recruit</button></div>`:'<span class="whyDisabled">No legal Muster</span>';
+      const ms=E.legalMusters(game,pi,c);
+      if(ms.length){dragClass=' recruitDraggable';dragAttrs=` data-hand-uid="${c.uid}" title="Drag this Critter to a glowing Muster"`;action='<span class="dragHint recruitHint">Drag to a Muster</span>';}
+      else action='<span class="whyDisabled">No legal Muster</span>';
     }else if(interactive&&c.subtype==='Tool'&&game.phase==='Build'&&pi===game.active){
       const rs=p.residents.filter(r=>!r.tool);const sid=`tool-${c.uid}`;
       action=rs.length?`<div class="miniAction"><select id="${sid}">${rs.map(r=>`<option value="${r.uid}">${esc(r.name)}</option>`).join('')}</select><button onclick="UI.tool(${c.uid},'${sid}')">Equip</button></div>`:'<span class="whyDisabled">No carrier</span>';
@@ -263,7 +258,7 @@
     }
     const subtype=c.type==='Critter'?`Muster — ${(c.musterClasses||[]).join(' · ')}`:c.subtype;
     const stats=c.type==='Critter'?`<div class="badgeRow handStats"><span>💪 ${c.might}</span><span>❤️ ${c.grit}</span></div>`:`<div class="costLine">${costText(c.cost)}</div>`;
-    return `<article class="gameCard handCard ${interactive?'':'lockedCard'}"><div class="artWindow handArt"><span>${handArt(c)}</span><small>${esc(subtype)}</small></div><div class="cardFrame"><div class="cardTop"><b>${esc(c.name)}</b>${c.advanced?'<span class="advancedTag">ADV</span>':''}</div>${stats}<p>${esc(c.text||'')}</p>${c.flags?.manual&&c.id!=='burrow_stores'?`<span class="manualTag">Manual: ${esc(c.flags.manual)}</span>`:''}${action}</div></article>`;
+    return `<article class="gameCard handCard ${interactive?'':'lockedCard'}${dragClass}"${dragAttrs}><div class="artWindow handArt"><span>${handArt(c)}</span><small>${esc(subtype)}</small></div><div class="cardFrame"><div class="cardTop"><b>${esc(c.name)}</b>${c.advanced?'<span class="advancedTag">ADV</span>':''}</div>${stats}<p>${esc(c.text||'')}</p>${c.flags?.manual&&c.id!=='burrow_stores'?`<span class="manualTag">Manual: ${esc(c.flags.manual)}</span>`:''}${action}</div></article>`;
   }
 
   function blueprintPanel(){
@@ -295,14 +290,18 @@
   }
 
   function combatPanel(){
-    if(!game.combat.attacks.length&&game.phase!=='Block')return `<section class="combatRibbon quiet compactTrial"><span>⚔</span><b>Frost Trial</b><small>Declare attackers when ready.</small></section>`;
+    if(!game.combat.attacks.length&&game.phase!=='Block')return `<section class="combatRibbon quiet compactTrial"><span>⚔</span><b>Frost Trial</b><small>Drag a ready Critter to an enemy target.</small></section>`;
     const attacker=game.players[game.active],defIndex=1-game.active,defender=game.players[defIndex];
     const humanDefender=isHuman(defIndex),humanAttacker=isHuman(game.active),canResolve=game.phase==='Block'&&(humanAttacker||humanDefender);
+    if(!game.combat.committed&&humanAttacker){
+      const n=game.combat.attacks.length;
+      return `<section class="combatRibbon activeCombat combatDraft"><div class="combatHeading"><span>⚔</span><div><b>${n} attacker${n===1?'':'s'} ready</b><small>Drag another Critter or commit the whole attack.</small></div></div><div class="combatButtons"><button class="primaryBtn" onclick="UI.commitAttacks()">Commit attack${n>1?` (${n})`:''}</button></div></section>`;
+    }
     return `<section class="combatRibbon activeCombat"><div class="combatHeading"><span>⚔</span><div><b>${game.combat.committed?'Block & React':'Declare Attackers'}</b><small>${game.combat.committed?'Attack committed · respond before damage':'Choose all attackers before committing'}</small></div></div><div class="attackList">${game.combat.attacks.map((a,i)=>{
       const atk=attacker.residents.find(r=>r.uid===a.attackerUid),blk=defender.residents.find(r=>r.uid===a.blockerUid);
       const blockers=game.phase==='Block'&&humanDefender&&!blk?defender.residents.filter(r=>E.canBlock(game,defIndex,r,a)):[];
       return `<div class="attackEntry"><div><b>${esc(atk?.name||'Attacker')}</b><span>→ ${a.target.kind==='hearthseed'?'🔥 Hearthseed':esc(a.target.name)}</span>${a.zeroDamage?'<small>Rootsnared · deals 0</small>':''}${blk?`<small>Blocked by ${esc(blk.name)}</small>`:''}</div>${blockers.length?`<div class="miniAction"><select id="blk-${i}">${blockers.map(r=>`<option value="${r.uid}">${esc(r.name)}</option>`).join('')}</select><button onclick="UI.block(${i})">Block</button></div>`:''}</div>`;
-    }).join('')}</div><div class="combatButtons">${!game.combat.committed&&humanAttacker?'<button onclick="UI.commitAttacks()">Commit attackers</button>':''}${canResolve?'<button class="primaryBtn" onclick="UI.resolveCombat()">Resolve combat</button>':''}</div>${game.phase==='Block'?reactionTray(humanIndex()):''}</section>`;
+    }).join('')}</div><div class="combatButtons">${canResolve?'<button class="primaryBtn" onclick="UI.resolveCombat()">Resolve combat</button>':''}</div>${game.phase==='Block'?reactionTray(humanIndex()):''}</section>`;
   }
 
   function reactionTray(pi){
@@ -346,14 +345,110 @@
 
 
   function tableFidgets(){
-    return `<div class="tableFidgets" aria-label="Tiny tabletop fidgets. No gameplay effect."><button type="button" class="tableFidget fidgetAcorn" data-fidget="bounce" title="Fidget · no game effect" onclick="UI.fidget(event.currentTarget)">🌰</button><button type="button" class="tableFidget fidgetLeaf" data-fidget="spin" title="Fidget · no game effect" onclick="UI.fidget(event.currentTarget)">🍂</button><button type="button" class="tableFidget fidgetPebble" data-fidget="wiggle" title="Fidget · no game effect" onclick="UI.fidget(event.currentTarget)">🪨</button><button type="button" class="tableFidget fidgetMushroom" data-fidget="squish" title="Fidget · no game effect" onclick="UI.fidget(event.currentTarget)">🍄</button></div>`;
+    return `<div class="handFidgets" aria-label="Hearthstep fidgets. No gameplay effect."><button type="button" class="tableFidget fidgetAcorn" data-fidget="bounce" title="Fidget · no game effect" onclick="UI.fidget(event.currentTarget)">🌰</button><button type="button" class="tableFidget fidgetLeaf" data-fidget="spin" title="Fidget · no game effect" onclick="UI.fidget(event.currentTarget)">🍂</button><button type="button" class="tableFidget fidgetPebble" data-fidget="wiggle" title="Fidget · no game effect" onclick="UI.fidget(event.currentTarget)">🪨</button><button type="button" class="tableFidget fidgetMushroom" data-fidget="squish" title="Fidget · no game effect" onclick="UI.fidget(event.currentTarget)">🍄</button></div>`;
+  }
+
+
+  function installDirectManipulation(){
+    const DRAG_THRESHOLD=7;
+    let gesture=null,ghost=null,arrow=null,arrowLine=null;
+
+    const clearTargets=()=>document.querySelectorAll('.directDropTarget,.directDropHover').forEach(el=>el.classList.remove('directDropTarget','directDropHover'));
+    function cleanup(){
+      clearTargets();ghost?.remove();arrow?.remove();ghost=null;arrow=null;arrowLine=null;
+      document.body.classList.remove('directManipulating');
+      gesture=null;
+    }
+    function cardGhost(source){
+      const g=source.cloneNode(true);g.classList.add('dragCardGhost');g.removeAttribute('title');
+      g.querySelectorAll('button,select').forEach(el=>el.remove());document.body.appendChild(g);return g;
+    }
+    function moveGhost(x,y){if(ghost){ghost.style.left=`${x}px`;ghost.style.top=`${y}px`;}}
+    function attackArrow(source){
+      const r=source.getBoundingClientRect();
+      const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.classList.add('dragAttackArrow');
+      svg.innerHTML='<defs><marker id="hnhAttackHead" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" /></marker></defs><line marker-end="url(#hnhAttackHead)" />';
+      document.body.appendChild(svg);const line=svg.querySelector('line');line.setAttribute('x1',String(r.left+r.width/2));line.setAttribute('y1',String(r.top+r.height/2));return {svg,line};
+    }
+    function elementTargetAt(x,y){return document.elementFromPoint(x,y);}
+    function recruitTarget(el){return el?.closest?.('[data-muster-uid]')||null;}
+    function attackTarget(el){return el?.closest?.('[data-attack-building],[data-hearthseed-player]')||null;}
+    function attackKey(el){
+      if(!el)return null;
+      if(el.hasAttribute('data-attack-building'))return `building:${el.dataset.attackBuilding}`;
+      if(el.hasAttribute('data-hearthseed-player'))return `hearthseed:${el.dataset.hearthseedPlayer}`;
+      return null;
+    }
+    function markLegal(kind,legal){
+      clearTargets();
+      if(kind==='recruit')document.querySelectorAll('[data-muster-uid]').forEach(el=>{if(legal.has(String(el.dataset.musterUid)))el.classList.add('directDropTarget');});
+      else{
+        document.querySelectorAll('[data-attack-building]').forEach(el=>{if(legal.has(`building:${el.dataset.attackBuilding}`))el.classList.add('directDropTarget');});
+        document.querySelectorAll('[data-hearthseed-player]').forEach(el=>{if(legal.has(`hearthseed:${el.dataset.hearthseedPlayer}`))el.classList.add('directDropTarget');});
+      }
+    }
+    function begin(event){
+      if(event.button!==0||event.target.closest('button,select,a'))return;
+      const recruit=event.target.closest('.recruitDraggable'),attack=event.target.closest('.attackDraggable');
+      if(!recruit&&!attack)return;
+      if(recruit){
+        const uid=+recruit.dataset.handUid,p=game.players[game.active],card=p.hand.find(c=>c.uid===uid);if(!card)return;
+        const legalMusters=E.legalMusters(game,game.active,card);if(!legalMusters.length)return;
+        gesture={kind:'recruit',uid,source:recruit,startX:event.clientX,startY:event.clientY,pointerId:event.pointerId,legal:new Set(legalMusters.map(m=>String(m.uid))),dragging:false};
+      }else{
+        const uid=+attack.dataset.residentUid,p=game.players[game.active],resident=p.residents.find(r=>r.uid===uid);if(!resident||!E.canAttack(game,game.active,resident))return;
+        const legalTargets=E.legalAttackTargets(game,game.active,resident);if(!legalTargets.length)return;
+        const opponent=1-game.active;
+        gesture={kind:'attack',uid,source:attack,startX:event.clientX,startY:event.clientY,pointerId:event.pointerId,legal:new Set(legalTargets.map(t=>t.kind==='hearthseed'?`hearthseed:${opponent}`:`building:${t.uid}`)),dragging:false};
+      }
+    }
+    function start(){
+      if(!gesture||gesture.dragging)return;gesture.dragging=true;document.body.classList.add('directManipulating');markLegal(gesture.kind,gesture.legal);
+      if(gesture.kind==='recruit'){ghost=cardGhost(gesture.source);moveGhost(gesture.startX,gesture.startY);}
+      else{const a=attackArrow(gesture.source);arrow=a.svg;arrowLine=a.line;}
+    }
+    function move(event){
+      if(!gesture||event.pointerId!==gesture.pointerId)return;
+      if(!gesture.dragging&&Math.hypot(event.clientX-gesture.startX,event.clientY-gesture.startY)<DRAG_THRESHOLD)return;
+      start();event.preventDefault();
+      document.querySelectorAll('.directDropHover').forEach(el=>el.classList.remove('directDropHover'));
+      const under=elementTargetAt(event.clientX,event.clientY);
+      if(gesture.kind==='recruit'){
+        moveGhost(event.clientX,event.clientY);const target=recruitTarget(under);if(target&&gesture.legal.has(String(target.dataset.musterUid)))target.classList.add('directDropHover');
+      }else{
+        const target=attackTarget(under),valid=target&&gesture.legal.has(attackKey(target));
+        arrowLine?.setAttribute('x2',String(event.clientX));arrowLine?.setAttribute('y2',String(event.clientY));arrow?.classList.toggle('valid',Boolean(valid));if(valid)target.classList.add('directDropHover');
+      }
+    }
+    function finish(event){
+      if(!gesture||event.pointerId!==gesture.pointerId)return;
+      const g=gesture;
+      if(!g.dragging){cleanup();return;}
+      event.preventDefault();const under=elementTargetAt(event.clientX,event.clientY);
+      if(g.kind==='recruit'){
+        const target=recruitTarget(under),musterUid=target?.dataset?.musterUid;
+        if(target&&g.legal.has(String(musterUid))){cleanup();doAction(()=>E.recruit(game,game.active,g.uid,+musterUid));return;}
+      }else{
+        const target=attackTarget(under),key=attackKey(target);
+        if(target&&g.legal.has(key)){
+          const targetArg=key.startsWith('hearthseed:')?'hearthseed':+target.dataset.attackBuilding;
+          cleanup();doAction(()=>E.declareAttack(game,game.active,g.uid,targetArg));return;
+        }
+      }
+      cleanup();
+    }
+    document.addEventListener('pointerdown',begin,true);
+    document.addEventListener('pointermove',move,{capture:true,passive:false});
+    document.addEventListener('pointerup',finish,true);
+    document.addEventListener('pointercancel',cleanup,true);
+    window.addEventListener('blur',cleanup);
   }
 
   function render(){
     if(!game){app.innerHTML=setupScreen();return;}
     const top=game.mode==='ai'?game.aiIndex:1-game.active,bottom=game.mode==='ai'?humanIndex():game.active;
     const enemy=game.players[top],home=game.players[bottom];
-    app.innerHTML=`<div class="client"><header class="tableTopbar"><div class="brandBlock"><div class="brand">Hearth & Hollow</div><span>Client v0.7.8 · Rules v0.6.2</span></div>${phaseStrip()}<div class="turnBlock"><small>Round ${E.currentRound(game)} · Turn ${game.turnNo}</small><b>${esc(game.players[game.active].name)} · ${game.phase}</b></div><div class="topControls">${utilityButtons()}${controls()}<button class="resetButton" onclick="UI.reset()">↺</button></div></header>${toast?`<div class="toast">${esc(toast)}</div>`:''}<main class="tableSurface">${tableFidgets()}${playerBanner(enemy,top,true)}${villageZone(enemy,top,true)}${fieldZone(enemy,top,true)}${combatPanel()}${fieldZone(home,bottom,false)}${villageZone(home,bottom,false)}${playerBanner(home,bottom,false)}</main>${handPanel()}${drawerPanel()}${harvestOverlay()}${winnerOverlay()}</div>`;
+    app.innerHTML=`<div class="client"><header class="tableTopbar"><div class="brandBlock"><div class="brand">Hearth & Hollow</div><span>Client v0.7.9 · Rules v0.6.2</span></div>${phaseStrip()}<div class="turnBlock"><small>Round ${E.currentRound(game)} · Turn ${game.turnNo}</small><b>${esc(game.players[game.active].name)} · ${game.phase}</b></div><div class="topControls">${utilityButtons()}${controls()}<button class="resetButton" onclick="UI.reset()">↺</button></div></header>${toast?`<div class="toast">${esc(toast)}</div>`:''}<main class="tableSurface">${playerBanner(enemy,top,true)}${villageZone(enemy,top,true)}${fieldZone(enemy,top,true)}${combatPanel()}${fieldZone(home,bottom,false)}${villageZone(home,bottom,false)}${playerBanner(home,bottom,false)}</main>${handPanel()}${drawerPanel()}${harvestOverlay()}${winnerOverlay()}</div>`;
   }
 
   window.UI={
@@ -366,7 +461,6 @@
     tool:(uid,sid)=>doAction(()=>E.playTool(game,game.active,uid,+document.getElementById(sid).value)),
     supply:(uid,sid1,sid2)=>doAction(()=>E.playSupply(game,game.active,uid,document.getElementById(sid1).value,document.getElementById(sid2).value)),
     workshop:(buid,tid,rid)=>doAction(()=>E.useWorkshop(game,game.active,buid,+document.getElementById(tid).value,document.getElementById(rid).value)),
-    attack:(uid,sid)=>doAction(()=>E.declareAttack(game,game.active,uid,document.getElementById(sid).value==='hearthseed'?'hearthseed':+document.getElementById(sid).value)),
     commitAttacks:()=>doAction(()=>E.commitAttacks(game,game.active)),
     block:i=>{const sid=`blk-${i}`;doAction(()=>E.assignBlock(game,1-game.active,+document.getElementById(sid).value,i));},
     reaction:(pi,uid,sid)=>doAction(()=>E.playReaction(game,pi,uid,document.getElementById(sid).value)),
@@ -374,6 +468,7 @@
     discard:uid=>doAction(()=>E.discard(game,game.active,uid)),
     endTurn:()=>doAction(()=>E.requestEndTurn(game,game.active)),
   };
+  installDirectManipulation();
   render();
 })();
 
@@ -418,7 +513,7 @@
 
   function syncVersion(){
     const el=document.querySelector('.brandBlock > span');
-    if(el&&el.textContent!=='Client v0.7.8 · Rules v0.6.2')el.textContent='Client v0.7.8 · Rules v0.6.2';
+    if(el&&el.textContent!=='Client v0.7.9 · Rules v0.6.2')el.textContent='Client v0.7.9 · Rules v0.6.2';
   }
 
   function flushAppObservers(){
@@ -618,7 +713,7 @@
     fieldRail.classList.toggle('drawLow', typeof lastFieldCount === 'number' && lastFieldCount <= 8);
 
     const brandVersion = document.querySelector('.brandBlock > span');
-    if (brandVersion) brandVersion.textContent = 'Client v0.7.8 · Rules v0.6.2';
+    if (brandVersion) brandVersion.textContent = 'Client v0.7.9 · Rules v0.6.2';
   }
 
   function syncEnhancements() {
@@ -968,7 +1063,7 @@
     positionRails();
     syncTutorial();
     const brandVersion=document.querySelector('.brandBlock > span');
-    if(brandVersion)brandVersion.textContent='Client v0.7.8 · Rules v0.6.2';
+    if(brandVersion)brandVersion.textContent='Client v0.7.9 · Rules v0.6.2';
   }
 
   installDrag(fieldRail);
@@ -1066,7 +1161,7 @@
     ensureSetupLinks();
     ensureGameLinks();
     const brandVersion=document.querySelector('.brandBlock > span');
-    if(brandVersion)brandVersion.textContent='Client v0.7.8 · Rules v0.6.2';
+    if(brandVersion)brandVersion.textContent='Client v0.7.9 · Rules v0.6.2';
   }
 
   const app=document.getElementById('app');
@@ -1105,7 +1200,7 @@
 
   function syncVersion(){
     const el=document.querySelector('.brandBlock > span');
-    if(el)el.textContent='Client v0.7.8 · Rules v0.6.2';
+    if(el)el.textContent='Client v0.7.9 · Rules v0.6.2';
   }
 
   function sync(){
