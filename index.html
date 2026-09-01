@@ -5,6 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Hearth & Hollow — Tabletop Client v0.8.0</title>
   <link rel="stylesheet" href="styles.css?v=080" />
+  <style>
+    /* Compact Muster identity: keep the class readable without overpowering the card. */
+    .musterIdentity{margin:4px 0 4px;padding:3px 6px;gap:5px;border-radius:6px;min-height:0}
+    .musterIdentity strong{font-size:12px;line-height:1.05;letter-spacing:.01em;flex:0 1 auto}
+    .musterIdentity small{font-size:7px;line-height:1.05;letter-spacing:.025em;white-space:nowrap;flex:0 0 auto}
+    .gameCard.building[data-muster-class] .buildingArt small{font-size:8px;letter-spacing:.08em}
+  </style>
 </head>
 <body>
   <div id="app"></div>
