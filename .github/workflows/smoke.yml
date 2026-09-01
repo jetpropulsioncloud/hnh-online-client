@@ -29,3 +29,4 @@ jobs:
         run: |
           node --check tabletop-interactions.js
           node --check tabletop-deck-polish.js
+          node --check social-links.js
