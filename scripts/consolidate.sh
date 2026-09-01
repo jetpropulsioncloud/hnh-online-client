@@ -130,47 +130,6 @@ console.log('✓ UI observer coordination survived consolidation');
 ''')
 PY
 
-cat > .github/workflows/smoke.yml <<'EOF'
-name: Hearth & Hollow smoke
-
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-
-permissions:
-  contents: read
-
-jobs:
-  smoke:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      - name: Run deck/data smoke test
-        run: node tests/smoke-test.js
-      - name: Run v0.6.2 rule regression tests
-        run: node tests/rules-test.js
-      - name: Run attack sequencing regression tests
-        run: node tests/rules-patch-test.js
-      - name: Run v0.6.2 card ability completion gate
-        run: node tests/ability-completion-test.js
-      - name: Run card ability timing and empty-zone gate
-        run: node tests/ability-edge-test.js
-      - name: Run consolidated UI/runtime gate
-        run: node tests/ui-coordinator-test.js
-      - name: Check consolidated runtime syntax
-        run: |
-          node --check data.js
-          node --check engine.js
-          node --check client.js
-EOF
-
 cat > README.md <<'EOF'
 # Hearth & Hollow — Online Client
 
@@ -223,7 +182,6 @@ rm -f \
   client-v062.js ui-coordinator.js tabletop-interactions.js tabletop-deck-polish.js social-links.js ability-ui.js \
   client-v062.css tabletop-interactions.css tabletop-deck-polish.css social-links.css ability-ui.css deck-stability.css
 
-rm -f .github/workflows/consolidate-once.yml
 rm -f scripts/consolidate.sh
 
 node --check data.js
