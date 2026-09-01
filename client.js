@@ -546,7 +546,7 @@
     fallback.observe(app,{childList:true,subtree:false});
   }
 
-  window.HNH_UI_COORDINATOR={flush:queueFlush,version:'0.7.8'};
+  window.HNH_UI_COORDINATOR={flush:queueFlush,version:'0.7.9'};
   syncVersion();
 })();
 

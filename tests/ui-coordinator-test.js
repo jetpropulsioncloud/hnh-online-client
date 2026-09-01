@@ -11,7 +11,7 @@ assert((html.match(/<script src=/g)||[]).length===3,'index.html should load exac
 assert((html.match(/rel="stylesheet"/g)||[]).length===1,'index.html should load exactly one stylesheet');
 assert(client.includes('CoordinatedMutationObserver'),'coordinated observer shim missing from consolidated client');
 assert(client.includes('appObservers'),'single app observer registry missing');
-assert(client.includes("version:'0.7.8'"),'coordinator version missing');
+assert(client.includes("version:'0.7.9'"),'coordinator version missing');
 assert(html.includes('Tabletop Client v0.7.9'),'presentation version not bumped');
 
 const retired=[
