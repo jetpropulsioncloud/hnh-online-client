@@ -14,7 +14,7 @@ window.HNH_DATA = (() => {
       }),
       field:[
         C('squirrel_raider','Squirrel Raider',['Scurry'],1,2,3,'While attacking a Building, this Critter gets +1 💪.',{buildingMightBonus:1},['Squirrel','Raider']),
-        C('meadow_mouse_scout','Meadow Mouse Scout',['Lantern'],1,3,3,'When this is recruited, Shield a Building you control.',{shieldBuildingOnRecruit:true},['Mouse','Scout']),
+        C('meadow_mouse_scout','Meadow Mouse Scout',['Lantern'],1,3,3,'When this is recruited, Shield a Building you control. Shield prevents its next single damage instance, then is removed.',{shieldBuildingOnRecruit:true},['Mouse','Scout']),
         C('ant_rush_team','Ant Rush Team',['Bramble'],3,3,3,'The ants have discovered the jam. For the next several minutes, very little else will matter.',{},['Ant','Swarm']),
         C('chipmunk_saboteur','Chipmunk Saboteur',['Bramble'],2,2,2,'A Production Building damaged by this Critter produces nothing next Harvest.',{sabotageProduction:true},['Chipmunk','Saboteur']),
         C('bramble_pouncer','Bramble Pouncer',['Scurry'],2,2,1,'Pounce — While attacking a damaged Building, 1 💪 Critters can’t block this Critter.',{pounce:true},['Pouncer','Raider']),
@@ -28,7 +28,7 @@ window.HNH_DATA = (() => {
         C('juniper_jay','Juniper Jay, Hazelnut Runner',['Scurry','Lantern'],5,2,1,'Juniper was supposed to be delivering hazelnuts. By lunchtime, she had also delivered most of the village gossip.',{advanced:true},['Jay','Raider','Scout']),
         C('briarhart_siege_stag','Briarhart Siege Stag',['Scurry','Lantern','Bramble'],6,2,2,'On the Move! — Cannot Block. Breach — Cannot be blocked while attacking a Building.',{advanced:true,cannotBlock:true,unblockableVsBuilding:true},['Stag','Siege']),
         S('shared_satchel','Shared Satchel','Tool',3,{acorn:1,provision:1},'Attached Critter gets +1 ❤️. First Building damaged each round: +📦.',{gritBonus:1,manual:'First Building damaged each round'}),
-        S('bramble_climbing_kit','Bramble Climbing Kit','Tool',3,{sap:1,provision:1},'The attached Critter gains Eager.',{eager:true}),
+        S('bramble_climbing_kit','Bramble Climbing Kit','Tool',3,{sap:1,provision:1},'The attached Critter gains Eager — it may attack the turn it is recruited.',{eager:true}),
         S('hide_in_ferns','Hide in the Ferns','Reaction',3,{sap:1,provision:1},'Slip Past — When blocked, remove that blocker from combat. This attack is unblocked.',{manual:'Reaction timing'}),
         S('sap_bandage','Sap Bandage','Reaction',3,{sap:1,provision:1},'Prevent the next 2 damage to one Critter or Building this turn.',{manual:'Damage prevention'})
       ],
@@ -50,7 +50,7 @@ window.HNH_DATA = (() => {
     RP: {
       key:'RP', name:'Stonecap — Root / Pebble', short:'Root / Pebble', hearthkeeper:'Mosswick Grubroot',
       resources:['root','pebble','provision'],
-      founding: B('stonecap_root_cellar','Stonecap Root Cellar','Founding Production',{},4,1,{production:true,harvestChoice:['root','pebble'],text:'Harvest: gain 🫚 or 🪨. First attack damage to another Building each round is reduced by 1.',manual:'Founding prevention remains manual'}),
+      founding: B('stonecap_root_cellar','Stonecap Root Cellar','Founding Production',{},4,1,{production:true,harvestChoice:['root','pebble'],text:'Harvest: gain 🫚 or 🪨. The first time each round another Building you control would take attack damage, prevent 1 of it.',manual:'Founding prevention remains manual'}),
       field:[
         C('rootling_mole','Rootling Mole',['Handwork','Burrow'],2,2,3,'For the Pantry — When defeated, gain 📦.',{onDefeatProvision:1},['Mole','Builder','Burrower']),
         C('nell_rootwatch','Nell Rootwatch, Hearth Warden',['Handwork','Burrow'],2,3,1,'For the Pantry. Hearthbound — The first time each game this is defeated while blocking, return it to your hand instead.',{onDefeatProvision:1,manual:'Hearthbound'},['Mole','Builder','Burrower']),
@@ -59,12 +59,12 @@ window.HNH_DATA = (() => {
         C('rabbit_helper','Rabbit Helper',['Handwork'],1,2,4,'Patchwork. When recruited, repair 1 damage from one Building you control.',{repairOnRecruit:1},['Rabbit','Helper']),
         C('pillbug_builder','Pillbug Builder',['Handwork'],1,3,3,'When recruited, repair 2 damage from one Building you control.',{repairOnRecruit:2},['Pillbug','Builder']),
         C('crow_salvager','Crow Salvager',['Burrow'],2,1,1,'When recruited, return one Tool or one Critter from your Compost to your hand.',{manual:'Compost return'},['Crow','Salvager']),
-        C('stone_toad_bruiser','Stone Toad Bruiser',['Gatewatch'],5,4,3,'Guard. This cannot attack the Hearthseed unless you have at least 5 active ✨. Crushing Blow 2.',{guard:true,hearthseedProsperityGate:5,crushingBlow:2},['Toad','Guard']),
+        C('stone_toad_bruiser','Stone Toad Bruiser',['Gatewatch'],5,4,3,'Guard. This cannot attack the enemy Hearthseed unless you have at least 5 active ✨. Crushing Blow 2 — when this defeats a blocker, deal 2 damage to the original target.',{guard:true,hearthseedProsperityGate:5,crushingBlow:2},['Toad','Guard']),
         C('merrin_mossback','Merrin Mossback, Newt Mason',['Handwork'],2,3,3,'Merrin says a crooked stone will bother you eventually, so you may as well fix it now.',{},['Newt','Builder','Helper']),
         C('barley_burrowwright','Barley Burrowwright, Badger Builder',['Handwork'],3,4,3,'Nobody remembers when Barley started leaving fresh bread at the burrow doors. Barley has never mentioned it.',{},['Badger','Builder']),
         C('odo_ramhorn','Odo Ramhorn, Gate Snail',['Gatewatch'],4,5,1,'Guard — This stays ready after it attacks. It still attacks only once each Attack step.',{guard:true},['Snail','Guard']),
         C('clem_cedarhorn','Clem Cedarhorn, Workshop Porter',['Handwork','Gatewatch'],5,5,2,'Guard — This stays ready after it attacks. It still attacks only once each Attack step.',{guard:true,advanced:true},['Beetle','Guard','Builder']),
-        C('flintcap_siege_badger','Flintcap Siege Badger',['Handwork','Gatewatch','Burrow'],5,2,2,'On the Move! — Cannot Block. Trample 3.',{cannotBlock:true,trample:3},['Badger','Siege']),
+        C('flintcap_siege_badger','Flintcap Siege Badger',['Handwork','Gatewatch','Burrow'],5,2,2,'On the Move! — Cannot Block. Trample 3 — up to 3 excess combat damage carries over to the original target.',{cannotBlock:true,trample:3},['Badger','Siege']),
         S('pebble_plating','Pebble Plating','Tool',3,{pebble:1,provision:1},'Attached Critter gets +2 ❤️.',{gritBonus:2}),
         S('burrow_stores','Burrow Stores','Supply',3,{},'At the start of your Build, if you can’t build a Building or recruit a Critter, discard this: exchange 1 resource for 🫚 or 🪨.',{manual:'Conditional exchange'}),
         S('brace_the_burrow','Brace the Burrow','Reaction',3,{pebble:1,provision:1},'Prevent the next 3 damage to one Building or Hearthseed this turn.',{manual:'Damage prevention'}),
@@ -115,8 +115,8 @@ window.HNH_DATA = (() => {
   clean(byId('AS','hidden_brambleworks'));
 
   const stocked=byId('AS','stocked_squirrel_armory');
-  clean(stocked,{text:'Muster — Scurry. Recruit: pay 🥜. Squirrels housed here get +1 💪.',squirrelMightBonus:1});
-  delete stocked.upgradeGain;
+  clean(stocked,{text:'Muster — Scurry. Recruit: pay 🥜. When you upgrade to this, gain 📦.',upgradeGain:{provision:1}});
+  delete stocked.squirrelMightBonus;
 
   clean(byId('AS','lantern_scout_nook'),{
     text:'Muster — Lantern. First Mouse or Bird recruited here each round lets you look at the top 2 Field Deck cards. Put one on top and one on the bottom.',

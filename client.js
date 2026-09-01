@@ -3,7 +3,13 @@
   const app=document.getElementById('app');
   const ICON={acorn:'🥜',sap:'💦',root:'🫚',pebble:'🪨',provision:'📦'};
   const RLABEL={acorn:'Acorn',sap:'Sap',root:'Root',pebble:'Pebble',provision:'Provision'};
-  let game=null,toast='',aiTimer=null,drawer=null;
+  const AI_PROFILES={
+    beginner:{label:'Beginner',delay:1250,maxSteps:4,recruitUntil:3,buildUntil:3,attackers:2},
+    standard:{label:'Standard',delay:750,maxSteps:6,recruitUntil:5,buildUntil:4,attackers:3},
+    hard:{label:'Hard',delay:450,maxSteps:8,recruitUntil:6,buildUntil:5,attackers:4}
+  };
+  let game=null,toast='',aiTimer=null,drawer=null,aiDifficulty='beginner';
+  const aiProfile=()=>AI_PROFILES[aiDifficulty]||AI_PROFILES.beginner;
 
   const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[m]));
   const costText=cost=>!cost||!Object.keys(cost).length?'Free':Object.entries(cost).map(([r,n])=>`${n>1?n:''}${ICON[r]||r}`).join(' + ');
@@ -11,9 +17,10 @@
   const humanIndex=()=>game?.mode==='ai'?1-game.aiIndex:game?.active??0;
   const faction=p=>decks[p.factionKey];
   const setToast=msg=>{toast=msg;clearTimeout(setToast.t);setToast.t=setTimeout(()=>{toast='';render();},2400);};
+  const aiNote=msg=>{toast=msg;clearTimeout(setToast.t);setToast.t=setTimeout(()=>{toast='';render();},Math.max(1700,aiProfile().delay+450));};
 
-  function newMatch(mode,key='AS'){
-    clearTimeout(aiTimer);drawer=null;
+  function newMatch(mode,key='AS',difficulty='beginner'){
+    clearTimeout(aiTimer);drawer=null;aiDifficulty=AI_PROFILES[difficulty]?difficulty:'beginner';
     game=E.createGame({mode,humanFaction:key});
     E.startGame(game);
     render();scheduleAI();
@@ -35,7 +42,7 @@
     clearTimeout(aiTimer);
     if(!game||game.winner||game.mode!=='ai'||game.active!==game.aiIndex)return;
     if(game.phase==='Block')return;
-    aiTimer=setTimeout(runAI,420);
+    aiTimer=setTimeout(runAI,aiProfile().delay);
   }
 
   function runAI(){
@@ -44,22 +51,22 @@
     if(game.phase==='Harvest'&&game.pendingHarvest.length){
       const item=game.pendingHarvest[0];
       const choice=[...item.options].sort((a,b)=>(p.resources[a]||0)-(p.resources[b]||0))[0];
-      E.chooseHarvest(game,choice);render();scheduleAI();return;
+      E.chooseHarvest(game,choice);aiNote(`AI harvests ${RLABEL[choice]}.`);render();scheduleAI();return;
     }
     if(game.phase==='Build'){
       game._aiSteps=game._aiTurnNo===game.turnNo?(game._aiSteps||0):0;game._aiTurnNo=game.turnNo;
-      if(game._aiSteps<8){
+      if(game._aiSteps<aiProfile().maxSteps){
         const free=E.legalBuilds(game,pi).filter(b=>b.production&&!b.upgradeFrom&&!Object.keys(b.cost||{}).length);
-        if(!p.freeProductionBuilt&&free.length){game._aiSteps++;E.build(game,pi,chooseAIProduction(p,free).id);render();scheduleAI();return;}
+        if(!p.freeProductionBuilt&&free.length){game._aiSteps++;const pick=chooseAIProduction(p,free);E.build(game,pi,pick.id);aiNote(`AI builds ${pick.name}.`);render();scheduleAI();return;}
         const critters=p.hand.filter(c=>c.type==='Critter').map(c=>({c,ms:E.legalMusters(game,pi,c)})).filter(x=>x.ms.length);
-        if(critters.length&&game._aiSteps<6){
+        if(critters.length&&game._aiSteps<aiProfile().recruitUntil){
           critters.sort((a,b)=>(b.c.might+b.c.grit)-(a.c.might+a.c.grit));game._aiSteps++;
-          E.recruit(game,pi,critters[0].c.uid,critters[0].ms[0].uid);render();scheduleAI();return;
+          const pick=critters[0];E.recruit(game,pi,pick.c.uid,pick.ms[0].uid);aiNote(`AI recruits ${pick.c.name}.`);render();scheduleAI();return;
         }
         const builds=E.legalBuilds(game,pi).filter(b=>Object.keys(b.cost||{}).length);
-        if(builds.length&&game._aiSteps<5){
+        if(builds.length&&game._aiSteps<aiProfile().buildUntil){
           builds.sort((a,b)=>aiBlueprintScore(game,p,b)-aiBlueprintScore(game,p,a));game._aiSteps++;
-          E.build(game,pi,builds[0].id);render();scheduleAI();return;
+          const pick=builds[0];E.build(game,pi,pick.id);aiNote(`AI builds ${pick.name}.`);render();scheduleAI();return;
         }
       }
       aiDeclareAttacks();return;
@@ -71,7 +78,7 @@
     }
     if(game.phase==='Discard'){
       const lowest=[...p.hand].sort((a,b)=>cardValue(a)-cardValue(b))[0];
-      if(lowest)E.discard(game,pi,lowest.uid);render();scheduleAI();return;
+      if(lowest){E.discard(game,pi,lowest.uid);aiNote(`AI discards ${lowest.name}.`);}render();scheduleAI();return;
     }
     render();
   }
@@ -94,12 +101,12 @@
     const pi=game.aiIndex,p=game.players[pi],o=game.players[1-pi];
     const ready=p.residents.filter(r=>E.canAttack(game,pi,r));
     if(!ready.length){E.requestEndTurn(game,pi);render();scheduleAI();return;}
-    ready.slice(0,4).forEach(r=>{
+    ready.slice(0,aiProfile().attackers).forEach(r=>{
       const buildings=E.activeBuildings(o).sort((a,b)=>(a.durability-a.damage)-(b.durability-b.damage));
       const target=o.exposed||o.hearthseed<=E.residentMight(r,{kind:'hearthseed'})?'hearthseed':(buildings[0]?.uid??'hearthseed');
       E.declareAttack(game,pi,r.uid,target);
     });
-    if(game.combat.attacks.length)E.commitAttacks(game,pi);else E.requestEndTurn(game,pi);
+    if(game.combat.attacks.length){E.commitAttacks(game,pi);aiNote(`AI declares ${game.combat.attacks.length} attacker${game.combat.attacks.length===1?'':'s'}.`);}else E.requestEndTurn(game,pi);
     render();
   }
 
@@ -117,7 +124,7 @@
   }
 
   function setupScreen(){
-    return `<main class="setupShell"><section class="setupCard"><div class="setupSeal">🔥</div><div class="eyebrow">DIGITAL TABLETOP · RULES v0.6.2</div><h1>Hearth & Hollow</h1><p class="lead">Build a tiny woodland village, gather your Critters, and keep the last warm Hearthseed glowing through winter.</p><div class="factionGrid"><button class="factionChoice porch" onclick="UI.newMatch('ai','AS')"><span class="bigIcon">🥜💦</span><span><b>Porchlight</b><small>Hazel Underleaf · Acorn / Sap</small></span></button><button class="factionChoice stone" onclick="UI.newMatch('ai','RP')"><span class="bigIcon">🫚🪨</span><span><b>Stonecap</b><small>Mosswick Grubroot · Root / Pebble</small></span></button></div><button class="textButton" onclick="UI.newMatch('hotseat','AS')">Hot-seat two player</button><div class="ruleCallout"><b>Prosperity:</b> reaching 15 is not immediate victory. Hold 15+ active Prosperity until the start of your Dawn.</div></section></main>`;
+    return `<main class="setupShell"><section class="setupCard"><div class="setupSeal">🔥</div><div class="eyebrow">DIGITAL TABLETOP · RULES v0.6.2</div><h1>Hearth & Hollow</h1><p class="lead">Build a tiny woodland village, gather your Critters, and keep the last warm Hearthseed glowing through winter.</p><h2 class="setupPrompt">Choose how your village plays</h2><div class="factionGrid"><button class="factionChoice porch" onclick="UI.newMatch('ai','AS',document.getElementById('aiDifficulty').value)"><span class="bigIcon">🥜💦</span><span><b>Porchlight</b><small>Hazel Underleaf · Acorn / Sap</small><em class="deckArchetype">⚡ Fast, scrappy pressure</em><span class="deckExplain">Attack Buildings early, disrupt production, and keep the tempo moving.</span></span></button><button class="factionChoice stone" onclick="UI.newMatch('ai','RP',document.getElementById('aiDifficulty').value)"><span class="bigIcon">🫚🪨</span><span><b>Stonecap</b><small>Mosswick Grubroot · Root / Pebble</small><em class="deckArchetype">🛡️ Sturdy, defensive value</em><span class="deckExplain">Block, repair, recycle Critters, and grow into a strong late village.</span></span></button></div><div class="aiDifficultyBox"><label for="aiDifficulty"><b>AI Difficulty</b><select id="aiDifficulty"><option value="beginner" selected>Beginner — slow & gentle</option><option value="standard">Standard — normal pace</option><option value="hard">Hard — faster & more active</option></select></label><small>Beginner pauses between actions and takes fewer actions/attackers so you can follow what the opponent is doing.</small></div><button class="textButton" onclick="UI.newMatch('hotseat','AS')">Hot-seat two player</button><div class="ruleCallout"><b>Prosperity:</b> reaching 15 is not immediate victory. Hold 15+ active Prosperity until the start of your Dawn.</div></section></main>`;
   }
 
   function phaseStrip(){
@@ -294,7 +301,7 @@
     if(!game){app.innerHTML=setupScreen();return;}
     const top=game.mode==='ai'?game.aiIndex:1-game.active,bottom=game.mode==='ai'?humanIndex():game.active;
     const enemy=game.players[top],home=game.players[bottom];
-    app.innerHTML=`<div class="client"><header class="tableTopbar"><div class="brandBlock"><div class="brand">Hearth & Hollow</div><span>Client v0.7.4 · Rules v0.6.2</span></div>${phaseStrip()}<div class="turnBlock"><small>Round ${E.currentRound(game)} · Turn ${game.turnNo}</small><b>${esc(game.players[game.active].name)} · ${game.phase}</b></div><div class="topControls">${utilityButtons()}${controls()}<button class="resetButton" onclick="UI.reset()">↺</button></div></header>${toast?`<div class="toast">${esc(toast)}</div>`:''}<main class="tableSurface">${playerBanner(enemy,top,true)}${villageZone(enemy,top,true)}${fieldZone(enemy,top,true)}<div class="trialDivider"><i></i><span>❄ FROST TRIAL ❄</span><i></i></div>${combatPanel()}${fieldZone(home,bottom,false)}${villageZone(home,bottom,false)}${playerBanner(home,bottom,false)}</main>${handPanel()}${drawerPanel()}${harvestOverlay()}${winnerOverlay()}</div>`;
+    app.innerHTML=`<div class="client"><header class="tableTopbar"><div class="brandBlock"><div class="brand">Hearth & Hollow</div><span>Client v0.7.5 · Rules v0.6.2</span></div>${phaseStrip()}<div class="turnBlock"><small>Round ${E.currentRound(game)} · Turn ${game.turnNo}</small><b>${esc(game.players[game.active].name)} · ${game.phase}</b></div><div class="topControls">${utilityButtons()}${controls()}<button class="resetButton" onclick="UI.reset()">↺</button></div></header>${toast?`<div class="toast">${esc(toast)}</div>`:''}<main class="tableSurface">${playerBanner(enemy,top,true)}${villageZone(enemy,top,true)}${fieldZone(enemy,top,true)}<div class="trialDivider"><i></i><span>❄ FROST TRIAL ❄</span><i></i></div>${combatPanel()}${fieldZone(home,bottom,false)}${villageZone(home,bottom,false)}${playerBanner(home,bottom,false)}</main>${handPanel()}${drawerPanel()}${harvestOverlay()}${winnerOverlay()}</div>`;
   }
 
   window.UI={
@@ -358,7 +365,7 @@
 
   function syncVersion(){
     const el=document.querySelector('.brandBlock > span');
-    if(el&&el.textContent!=='Client v0.7.4 · Rules v0.6.2')el.textContent='Client v0.7.4 · Rules v0.6.2';
+    if(el&&el.textContent!=='Client v0.7.5 · Rules v0.6.2')el.textContent='Client v0.7.5 · Rules v0.6.2';
   }
 
   function flushAppObservers(){
@@ -558,7 +565,7 @@
     fieldRail.classList.toggle('drawLow', typeof lastFieldCount === 'number' && lastFieldCount <= 8);
 
     const brandVersion = document.querySelector('.brandBlock > span');
-    if (brandVersion) brandVersion.textContent = 'Client v0.7.4 · Rules v0.6.2';
+    if (brandVersion) brandVersion.textContent = 'Client v0.7.5 · Rules v0.6.2';
   }
 
   function syncEnhancements() {
@@ -908,7 +915,7 @@
     positionRails();
     syncTutorial();
     const brandVersion=document.querySelector('.brandBlock > span');
-    if(brandVersion)brandVersion.textContent='Client v0.7.4 · Rules v0.6.2';
+    if(brandVersion)brandVersion.textContent='Client v0.7.5 · Rules v0.6.2';
   }
 
   installDrag(fieldRail);
@@ -1006,7 +1013,7 @@
     ensureSetupLinks();
     ensureGameLinks();
     const brandVersion=document.querySelector('.brandBlock > span');
-    if(brandVersion)brandVersion.textContent='Client v0.7.4 · Rules v0.6.2';
+    if(brandVersion)brandVersion.textContent='Client v0.7.5 · Rules v0.6.2';
   }
 
   const app=document.getElementById('app');
@@ -1045,7 +1052,7 @@
 
   function syncVersion(){
     const el=document.querySelector('.brandBlock > span');
-    if(el)el.textContent='Client v0.7.4 · Rules v0.6.2';
+    if(el)el.textContent='Client v0.7.5 · Rules v0.6.2';
   }
 
   function sync(){
