@@ -27,11 +27,11 @@
     const p={
       name,factionKey:key,hearthseed:20,resources:{acorn:0,sap:0,root:0,pebble:0,provision:0},
       fieldDeck:makeFieldDeck(f),hand:[],compost:[],village:[],residents:[],usedBlueprints:[],
-      exposed:false,exposurePendingTurn:null,sabotagedBuildings:{},
-      freeProductionBuilt:false,toolPlayed:false,reactionPlayed:false,workshopRepairUsed:false,
-      attackedThisStep:[],
+      exposed:false,exposurePendingOwnTurn:null,sabotagedBuildings:{},
+      freeProductionBuilt:false,toolPlayed:false,reactionRoundUsed:null,workshopRepairUsed:false,
+      attackedThisStep:[],turnsTaken:0,buildReadySnapshot:null,
     };
-    p.village.push({...inst(f.founding),damage:0,founding:true});
+    p.village.push({...inst(f.founding),damage:0,founding:true,shield:false,rehousingDueOwnTurn:null});
     draw(p,7,false);
     return p;
   }
@@ -49,33 +49,76 @@
     if(logIt && actual) log(`${p.name} drew ${actual} card${actual===1?'':'s'}.`);
   }
 
-  function log(msg){ if(!state)return; state.log.unshift(msg); state.log=state.log.slice(0,100); }
+  function log(msg){ if(!state)return; state.log.unshift(msg); state.log=state.log.slice(0,120); }
   function active(){return state.players[state.active];}
   function opponent(){return state.players[1-state.active];}
   function faction(p){return decks[p.factionKey];}
+  function playerIndex(p){return state.players.indexOf(p);}
   function activeBuildings(p){return p.village.filter(b=>b.damage < b.durability);}
   function prosperity(p){return activeBuildings(p).reduce((s,b)=>s+(b.prosperity||0),0);}
   function isRuined(b){return b.damage>=b.durability;}
   function hasActive(p,pred){return activeBuildings(p).some(pred);}
   function musters(p){return activeBuildings(p).filter(b=>b.muster);}
+  function controlledMusters(p){return p.village.filter(b=>b.muster);}
   function peacefulActive(p){return activeBuildings(p).some(b=>b.peaceful);}
-  function housingUsed(p,musterUid){return p.residents.filter(r=>r.musterUid===musterUid && !r.defeated).reduce((s,r)=>s+r.housing,0);}
+  function housingUsed(p,musterUid){return p.residents.filter(r=>r.musterUid===musterUid && !r.defeated).length;}
   function residentGrit(r){return r.grit + (r.tool?.flags?.gritBonus||0);}
   function residentMight(r,target){return r.might + ((target?.kind==='building' && r.flags?.buildingMightBonus)||0);}
   function residentReady(p,r){
     const m=p.village.find(b=>b.uid===r.musterUid);
     return !r.tired && !r.defeated && m && !isRuined(m);
   }
+  function readyCount(p){return p.residents.filter(r=>residentReady(p,r)).length;}
   function residentHasEager(r){return !!(r.flags?.eager||r.tool?.flags?.eager);}
   function residentCanAttack(p,r){
     if(!residentReady(p,r))return false;
     return r.recruitedTurn!==state.turnNo||residentHasEager(r);
   }
-  function canAfford(p,cost){return Object.entries(cost||{}).every(([k,v])=>(p.resources[k]||0)>=v);}
-  function pay(p,cost){Object.entries(cost||{}).forEach(([k,v])=>p.resources[k]-=v);}
+  function musterMatches(card,m){
+    if(!m?.muster||isRuined(m))return false;
+    if(card.advanced&&!m.upgradeFrom)return false;
+    return (card.musterClasses||[]).includes(m.musterClass);
+  }
+
+  const CORE_RESOURCES=['acorn','sap','root','pebble'];
+  function paymentPlan(p,cost,interactive=false){
+    const virtual={...p.resources},plan={};
+    for(const r of CORE_RESOURCES){
+      const need=cost?.[r]||0;
+      if((virtual[r]||0)<need)return null;
+      if(need){virtual[r]-=need;plan[r]=(plan[r]||0)+need;}
+    }
+    let provisionNeed=cost?.provision||0;
+    while(provisionNeed>0){
+      const choices=['provision',...CORE_RESOURCES].filter(r=>(virtual[r]||0)>0);
+      if(!choices.length)return null;
+      let chosen;
+      if(interactive&&!isAiTurn()&&choices.length>1){
+        const fallback=choices.includes('provision')?'provision':[...choices].sort((a,b)=>virtual[b]-virtual[a])[0];
+        const answer=prompt(`Pay this Provision slot with one of: ${choices.join(', ')}.`,fallback);
+        if(answer===null)return null;
+        chosen=choices.includes(answer.trim().toLowerCase())?answer.trim().toLowerCase():null;
+        if(!chosen){alert('Choose one of the listed resources.');return null;}
+      }else if(choices.includes('provision')) chosen='provision';
+      else chosen=[...choices].sort((a,b)=>virtual[b]-virtual[a])[0];
+      virtual[chosen]--;plan[chosen]=(plan[chosen]||0)+1;provisionNeed--;
+    }
+    return plan;
+  }
+  function canAfford(p,cost){return !!paymentPlan(p,cost,false);}
+  function pay(p,cost,interactive=false){
+    const plan=paymentPlan(p,cost,interactive);
+    if(!plan)return false;
+    Object.entries(plan).forEach(([k,v])=>p.resources[k]-=v);
+    return true;
+  }
   function gain(p,g){Object.entries(g||{}).forEach(([k,v])=>p.resources[k]=(p.resources[k]||0)+v);}
   function currentPhase(){return PHASES[state.phase];}
   function currentRound(){return Math.floor((state.turnNo-1)/2)+1;}
+  function roundLeader(round){
+    if(round<=1)return state.round1Opener;
+    return round%2===0?state.round2Leader:1-state.round2Leader;
+  }
 
   function isAiIndex(i){return !!state&&state.mode==='ai'&&state.aiIndex===i;}
   function isAiTurn(){return isAiIndex(state.active);}
@@ -90,9 +133,21 @@
   }
   function cardValue(c){
     if(!c)return 0;
-    if(c.type==='Critter')return (c.might||0)*1.6+(c.grit||0)+(c.housing?Math.max(0,2-c.housing)*.35:0)+(c.flags?.guard?1.3:0)+(c.flags?.trample?1:0)+(c.flags?.crushingBlow?1:0);
+    if(c.type==='Critter')return (c.might||0)*1.6+(c.grit||0)+(c.advanced?1.1:0)+(c.flags?.guard?1.3:0)+(c.flags?.trample?1:0)+(c.flags?.crushingBlow?1:0);
     if(c.subtype==='Tool')return 2.5+(c.flags?.gritBonus||0);
     return 1.5;
+  }
+  function repairBuilding(p,b,amount,source){
+    if(!b||b.damage<=0)return false;
+    const wasRuined=isRuined(b);
+    b.damage=Math.max(0,b.damage-amount);
+    log(`${source} repaired ${b.name} by ${amount}.`);
+    if(wasRuined&&!isRuined(b)){
+      b.rehousingDueOwnTurn=null;
+      p.exposurePendingOwnTurn=null;p.exposed=false;
+      log(`${b.name} is active again.`);
+    }
+    return true;
   }
   function repairBest(p,amount,source){
     const damaged=p.village.filter(b=>b.damage>0).sort((a,b)=>{
@@ -100,10 +155,7 @@
       return br-ar||(b.prosperity||0)-(a.prosperity||0);
     });
     if(!damaged.length)return false;
-    const b=damaged[0];
-    b.damage=Math.max(0,b.damage-amount);
-    log(`${source} repaired ${b.name} by ${amount}.`);
-    return true;
+    return repairBuilding(p,damaged[0],amount,source);
   }
   function aiHarvestChoice(p,options){
     const demand=r=>{
@@ -114,7 +166,7 @@
         if(need>0)score+=Math.min(need,2)*(bp.muster?2.4:bp.peaceful?1.5:1);
       });
       p.hand.filter(c=>c.type==='Critter').forEach(c=>{
-        musters(p).forEach(m=>{if(m.accepts?.some(t=>c.tags.includes(t)))score+=(m.recruitCost?.[r]||0)*1.5;});
+        musters(p).forEach(m=>{if(musterMatches(c,m))score+=(m.recruitCost?.[r]||0)*1.5;});
       });
       score+=Math.max(0,2-(p.resources[r]||0))*.8;
       return score+Math.random()*.2;
@@ -137,7 +189,7 @@
   function aiBlueprintScore(p,bp){
     let score=(bp.prosperity||0)*.7;
     if(bp.muster){
-      const matches=p.hand.filter(c=>c.type==='Critter'&&bp.accepts?.some(t=>c.tags.includes(t))).length;
+      const matches=p.hand.filter(c=>c.type==='Critter'&&(c.musterClasses||[]).includes(bp.musterClass)&&(!c.advanced||!!bp.upgradeFrom)).length;
       const activeSame=activeBuildings(p).filter(b=>b.id===bp.id||b.upgradeFrom===bp.id).length;
       score+=matches*3.4+(matches?4:0)-activeSame*2;
     }
@@ -165,7 +217,7 @@
     const options=[];
     p.hand.filter(c=>c.type==='Critter').forEach(card=>{
       legalMusters(p,card).forEach(m=>{
-        const room=(m.housing-housingUsed(p,m.uid)-card.housing);
+        const room=(m.housing-housingUsed(p,m.uid)-1);
         options.push({card,m,score:cardValue(card)+(m.prosperity||0)*.08-room*.05+Math.random()*.25});
       });
     });
@@ -291,22 +343,48 @@
     addGainFx(state.players.indexOf(p),buildingUid,gains,source);
   }
 
+  function offerStarterMulligan(p){
+    if(!confirm(`${p.name}: take your free partial mulligan?`))return;
+    const list=p.hand.map((c,i)=>`${i+1}. ${c.name}`).join('\n');
+    const raw=prompt(`${p.name} — enter card numbers to shuffle back, separated by commas.\n\n${list}`,'');
+    if(raw===null||!raw.trim())return;
+    const picks=[...new Set(raw.split(',').map(x=>parseInt(x.trim(),10)-1).filter(i=>Number.isInteger(i)&&i>=0&&i<p.hand.length))].sort((a,b)=>b-a);
+    if(!picks.length)return;
+    const returned=[];
+    for(const i of picks)returned.push(...p.hand.splice(i,1));
+    p.fieldDeck=shuffle([...p.fieldDeck,...returned]);
+    draw(p,returned.length,false);
+    log(`${p.name} took a partial mulligan of ${returned.length} card${returned.length===1?'':'s'}.`);
+  }
+
   function newGame(mode='ai',humanKey='AS'){
     const aiMode=mode==='ai';
     const validHumanKey=decks[humanKey]?humanKey:'AS';
     const otherKey=validHumanKey==='AS'?'RP':'AS';
-    const humanFaction=decks[validHumanKey];
     const aiFaction=decks[otherKey];
+    const players=aiMode
+      ?[makePlayer('You',validHumanKey),makePlayer(`${aiFaction.hearthkeeper} AI`,otherKey)]
+      :[makePlayer('Player 1','AS'),makePlayer('Player 2','RP')];
+    const setupRoll=Math.floor(Math.random()*4);
+    const round1Opener=setupRoll<2?0:1;
+    const round2Leader=setupRoll%2===0?0:1;
     state={
-      players:aiMode
-        ?[makePlayer('You',validHumanKey),makePlayer(`${aiFaction.hearthkeeper} AI`,otherKey)]
-        :[makePlayer('Player 1','AS'),makePlayer('Player 2','RP')],
-      active:aiMode?0:(Math.random()<.5?0:1),phase:0,turnNo:1,log:[],mode:aiMode?'ai':'hotseat',aiIndex:aiMode?1:null,
+      players,active:round1Opener,round1Opener,round2Leader,setupRoll,
+      phase:0,turnNo:1,log:[],mode:aiMode?'ai':'hotseat',aiIndex:aiMode?1:null,
       combat:{attacks:[],resolved:false},winner:null,pass:false,dev:true,
       pendingHarvest:null,cleanup:false,fx:[],aiTimer:null,aiCounters:null,aiWaitingForHuman:false
     };
+    if(aiMode){
+      offerStarterMulligan(players[humanIndex()]);
+    }else{
+      alert('Pass the device to Player 1 for the optional starter mulligan.');
+      offerStarterMulligan(players[0]);
+      alert('Pass the device to Player 2 for the optional starter mulligan.');
+      offerStarterMulligan(players[1]);
+    }
+    log(`Setup result ${setupRoll+1}/4: ${players[round1Opener].name} opens round 1; ${players[round2Leader].name} leads round 2.`);
     log(`The Frost Trial begins. ${active().name} has initiative.`);
-    if(aiMode)log(`${aiFaction.hearthkeeper} AI is piloting ${aiFaction.short} with a simple beta strategy: build infrastructure, recruit efficiently, defend key attacks, and pressure vulnerable Buildings.`);
+    if(aiMode)log(`${aiFaction.hearthkeeper} AI is piloting ${aiFaction.short} with a simple beta strategy.`);
     beginDawn();
   }
 
@@ -314,12 +392,12 @@
     if(state.winner)return;
     const p=active();
     state.phase=0; state.cleanup=false; state.combat={attacks:[],resolved:false};
-    p.freeProductionBuilt=false;p.toolPlayed=false;p.reactionPlayed=false;p.workshopRepairUsed=false;p.attackedThisStep=[];
+    p.freeProductionBuilt=false;p.toolPlayed=false;p.workshopRepairUsed=false;p.attackedThisStep=[];
     state.aiCounters=isAiTurn()?{paidBuilds:0,recruits:0,tool:false,repair:false}:null;state.aiWaitingForHuman=false;
-    p.residents.forEach(r=>{if(!r.defeated){r.tired=false;r.damage=0;r.attacking=false;r.blocking=false;}});
+    p.residents.forEach(r=>{if(!r.defeated){r.tired=false;r.attacking=false;r.blocking=false;}});
     if(prosperity(p)>=15){state.winner=p.name;log(`${p.name} begins Dawn with ${prosperity(p)} Prosperity and wins!`);render();return;}
     draw(p,1,true);
-    log(`${p.name}: Dawn resolved automatically — Critters ready, surviving Critter damage cleared, draw 1.`);
+    log(`${p.name}: Dawn resolved automatically — Critters ready, draw 1.`);
     beginHarvest();
   }
 
@@ -363,6 +441,7 @@
     log(`${p.name}: Harvest resolved automatically — ${Object.keys(gains).length?costText(gains):'no resources'} gained.`);
     state.pendingHarvest=null;
     state.phase=2;
+    p.buildReadySnapshot={self:readyCount(p),opponent:readyCount(opponent())};
     render();
     if(isAiTurn())aiDelay(520,aiTakeTurn);
   }
@@ -377,20 +456,93 @@
     finalizeEndTurn();
   }
 
+  function exposureDueOwnTurn(p){
+    return p.turnsTaken + (playerIndex(p)===state.active ? 2 : 1);
+  }
+
+  function markNoBuildingsResponse(p){
+    if(activeBuildings(p).length!==0)return;
+    if(p.exposurePendingOwnTurn===null){
+      p.exposurePendingOwnTurn=exposureDueOwnTurn(p);
+      log(`${p.name} has no active Buildings and receives one full response turn.`);
+    }
+  }
+
+  function markMusterRuin(p,b){
+    if(!b?.muster)return;
+    if(b.rehousingDueOwnTurn===null||b.rehousingDueOwnTurn===undefined){
+      b.rehousingDueOwnTurn=p.turnsTaken + (playerIndex(p)===state.active ? 2 : 1);
+      log(`${b.name}'s residents are inactive. They must be rehoused by the end of ${p.name}'s next turn if it remains Ruined.`);
+    }
+  }
+
+  function rehousingOptions(p,r,fromUid){
+    return activeBuildings(p).filter(m=>
+      m.muster&&m.uid!==fromUid&&musterMatches(r,m)&&housingUsed(p,m.uid)<m.housing
+    );
+  }
+
+  function returnResidentToHand(p,r,reason){
+    if(r.tool){p.compost.push(r.tool);r.tool=null;}
+    const idx=p.residents.findIndex(x=>x.uid===r.uid);
+    if(idx>=0)p.residents.splice(idx,1);
+    const card={...r};
+    ['musterUid','damage','tired','defeated','tool','attacking','blocking','recruitedTurn','shield'].forEach(k=>delete card[k]);
+    p.hand.push(card);
+    log(`${r.name} could not be rehoused and returned to ${p.name}'s hand${reason?` (${reason})`:''}.`);
+  }
+
+  function resolveRehousingAtEndTurn(p){
+    const due=p.village.filter(b=>b.muster&&isRuined(b)&&b.rehousingDueOwnTurn!==null&&b.rehousingDueOwnTurn!==undefined&&b.rehousingDueOwnTurn<=p.turnsTaken);
+    for(const ruined of due){
+      const residents=[...p.residents.filter(r=>r.musterUid===ruined.uid)];
+      for(const r of residents){
+        const opts=rehousingOptions(p,r,ruined.uid);
+        if(!opts.length){returnResidentToHand(p,r,'Ruined Muster');continue;}
+        let chosen=opts[0];
+        if(!isAiIndex(playerIndex(p))&&opts.length>1){
+          const listing=opts.map((m,i)=>`${i+1}. ${m.name} — ${m.musterClass} (${housingUsed(p,m.uid)}/${m.housing})`).join('\n');
+          const n=parseInt(prompt(`Rehouse ${r.name}.\n${listing}`,'1'),10)-1;
+          if(Number.isInteger(n)&&opts[n])chosen=opts[n];
+        }
+        r.musterUid=chosen.uid;
+        log(`${r.name} was rehoused in ${chosen.name}.`);
+      }
+      ruined.rehousingDueOwnTurn=null;
+    }
+  }
+
   function finalizeEndTurn(){
     const p=active();
     if(isAiTurn()&&p.hand.length>7){
       const ordered=[...p.hand].sort((a,b)=>cardValue(a)-cardValue(b));
-      while(p.hand.length>7&&ordered.length){const c=ordered.shift(),i=p.hand.findIndex(x=>x.uid===c.uid);if(i>=0){p.hand.splice(i,1);p.compost.push(c);log(`${p.name} discards ${c.name} during Rest.`);}}
+      while(p.hand.length>7&&ordered.length){
+        const c=ordered.shift(),i=p.hand.findIndex(x=>x.uid===c.uid);
+        if(i>=0){p.hand.splice(i,1);p.compost.push(c);log(`${p.name} discards ${c.name} during Rest.`);}
+      }
     }
     p.residents.forEach(r=>{if(!r.defeated)r.damage=0;r.attacking=false;r.blocking=false;});
-    const activeCount=activeBuildings(p).length;
-    if(activeCount===0){
-      if(p.exposurePendingTurn===null){p.exposurePendingTurn=state.turnNo;log(`${p.name} has no active Buildings and receives a response turn.`);}
-      else if(state.turnNo>p.exposurePendingTurn){p.exposed=true;log(`${p.name}'s Hearthseed is now Exposed.`);}
-    } else {p.exposed=false;p.exposurePendingTurn=null;}
+    p.turnsTaken++;
+    resolveRehousingAtEndTurn(p);
+
+    if(activeBuildings(p).length===0){
+      if(p.exposurePendingOwnTurn===null) p.exposurePendingOwnTurn=p.turnsTaken+1;
+      if(p.turnsTaken>=p.exposurePendingOwnTurn){
+        p.exposed=true;
+        log(`${p.name}'s Hearthseed is now Exposed.`);
+      }
+    }else{
+      p.exposed=false;
+      p.exposurePendingOwnTurn=null;
+    }
+
     log(`${p.name}: Rest resolved automatically.`);
-    state.active=1-state.active;state.turnNo++;state.phase=0;state.combat={attacks:[],resolved:false};state.pendingHarvest=null;state.cleanup=false;state.aiWaitingForHuman=false;
+    state.turnNo++;
+    const newRound=currentRound();
+    if((state.turnNo-1)%2===0) state.active=roundLeader(newRound);
+    else state.active=1-roundLeader(newRound);
+    state.phase=0;state.combat={attacks:[],resolved:false};state.pendingHarvest=null;state.cleanup=false;state.aiWaitingForHuman=false;
+
     if(state.mode==='ai'){
       state.pass=false;render();
       setTimeout(()=>{if(state&&!state.winner)beginDawn();},430);
@@ -402,11 +554,17 @@
     if(!canBuild(p,bp)){alert(buildReason(p,bp));return;}
     if(bp.upgradeFrom){
       const old=p.village.find(b=>b.id===bp.upgradeFrom&&!isRuined(b));if(!old)return;
-      pay(p,bp.cost);p.usedBlueprints.push(bp.id);const oldUid=old.uid,dmg=old.damage;Object.assign(old,inst(bp),{damage:dmg});
+      if(!pay(p,bp.cost,!isAiTurn()))return;
+      p.usedBlueprints.push(bp.id);
+      const oldUid=old.uid,dmg=old.damage,shield=!!old.shield;
+      Object.assign(old,inst(bp),{damage:dmg,shield,rehousingDueOwnTurn:null});
       p.residents.filter(r=>r.musterUid===oldUid).forEach(r=>r.musterUid=old.uid);
-      log(`${p.name} upgraded ${bp.name}.`);
+      if(bp.upgradeGain){gainWithFx(p,old.uid,bp.upgradeGain,'Upgrade');}
+      log(`${p.name} upgraded to ${bp.name}${bp.upgradeGain?' and gained its upgrade bonus':''}.`);
     } else {
-      pay(p,bp.cost);p.usedBlueprints.push(bp.id);const b={...inst(bp),damage:0};p.village.push(b);
+      if(!pay(p,bp.cost,!isAiTurn()))return;
+      p.usedBlueprints.push(bp.id);
+      const b={...inst(bp),damage:0,shield:false,rehousingDueOwnTurn:null};p.village.push(b);
       if(bp.production&&Object.keys(bp.cost||{}).length===0)p.freeProductionBuilt=true;
       if(bp.production){
         const g=bp.firstYield||bp.harvest||{};
@@ -423,37 +581,54 @@
     if(!canAfford(p,bp.cost))return 'Not enough resources.';
     if(bp.production&&Object.keys(bp.cost||{}).length===0&&p.freeProductionBuilt)return 'You already built your one free non-upgrade Production this Build.';
     if(bp.upgradeFrom&&!p.village.some(b=>b.id===bp.upgradeFrom&&!isRuined(b)))return 'The required base Building is not active.';
-    if(bp.peaceful&&musters(p).length>=3)return 'Peaceful cannot be built while you control 3 or more active Muster Buildings.';
-    if(bp.muster&&!bp.upgradeFrom&&peacefulActive(p)&&musters(p).length>=2)return 'An active Peaceful Landmark caps you at 2 Muster Buildings.';
+    if(bp.peaceful&&controlledMusters(p).length>=3)return 'Peaceful cannot be built while you control 3 or more Muster Buildings.';
+    if(bp.muster&&!bp.upgradeFrom&&peacefulActive(p)&&controlledMusters(p).length>=2)return 'An active Peaceful Landmark caps you at 2 Muster Buildings.';
     return '';
   }
   function canBuild(p,bp){return buildReason(p,bp)==='';}
 
   function musterStatus(p,m,card){
-    const accepts=!!m.muster&&!isRuined(m)&&m.accepts?.some(tag=>card.tags.includes(tag));
-    const housingOk=accepts&&(housingUsed(p,m.uid)+card.housing<=m.housing);
+    const accepts=musterMatches(card,m);
+    const housingOk=accepts&&(housingUsed(p,m.uid)+1<=m.housing);
     const afford=accepts&&canAfford(p,m.recruitCost);
     return {accepts,housingOk,afford,legal:accepts&&housingOk&&afford};
   }
   function compatibleMusters(p,card){return musters(p).filter(m=>musterStatus(p,m,card).housingOk);}
   function legalMusters(p,card){return musters(p).filter(m=>musterStatus(p,m,card).legal);}
 
+  function shieldBuildingOnRecruit(p,source){
+    const choices=activeBuildings(p).filter(b=>!b.shield);
+    if(!choices.length){log(`${source} had no unshielded Building to Shield.`);return;}
+    let b=choices[0];
+    if(isAiTurn()) b=[...choices].sort((a,z)=>(z.prosperity||0)-(a.prosperity||0)||(z.damage||0)-(a.damage||0))[0];
+    else{
+      const listing=choices.map((x,i)=>`${i+1}. ${x.name}${x.damage?` (${x.damage} damage)`:''}`).join('\n');
+      const n=parseInt(prompt(`${source}: Shield a Building.\n${listing}`,'1'),10)-1;
+      if(Number.isInteger(n)&&choices[n])b=choices[n];
+    }
+    b.shield=true;
+    log(`${source} gave Shield to ${b.name}.`);
+  }
+
   function recruit(cardUid,musterUid){
     const p=active();if(currentPhase()!=='Build')return;
     const idx=p.hand.findIndex(c=>c.uid===cardUid),card=p.hand[idx],m=p.village.find(b=>b.uid===musterUid);
     if(!card||card.type!=='Critter'||!m||isRuined(m))return;
     const status=musterStatus(p,m,card);
-    if(!status.accepts){alert(`${m.name} does not accept ${card.name}. It accepts: ${m.accepts.join(', ')}.`);return;}
-    if(!status.housingOk){alert(`${m.name} does not have enough Housing for ${card.name} (needs 🏠${card.housing}).`);return;}
-    if(!status.afford){alert(`You need ${costText(m.recruitCost)} to recruit through ${m.name}.`);return;}
-    pay(p,m.recruitCost);p.hand.splice(idx,1);
-    const r={...card,musterUid:m.uid,damage:0,tired:false,defeated:false,tool:null,attacking:false,blocking:false,recruitedTurn:state.turnNo};p.residents.push(r);
-    log(`${p.name} recruited ${card.name} into ${m.name}. It may block immediately, but cannot attack this turn unless it has Eager.`);
-    if(card.flags?.scryOnRecruit&&p.fieldDeck.length>=2){
-      const a=p.fieldDeck.shift(),b=p.fieldDeck.shift();
-      const keepA=isAiTurn()?cardValue(a)>=cardValue(b):confirm(`Meadow Mouse Scout — top 2:\nOK: keep ${a.name} on top, ${b.name} on bottom.\nCancel: reverse them.`);
-      if(keepA){p.fieldDeck.unshift(a);p.fieldDeck.push(b);}else{p.fieldDeck.unshift(b);p.fieldDeck.push(a);}log(`${p.name} resolved Meadow Mouse Scout's look at top 2.`);
+    if(!status.accepts){
+      const advancedNote=card.advanced&&!m.upgradeFrom?' Advanced Critters require an upgraded matching Muster.':'';
+      alert(`${m.name} is ${m.musterClass||'not a matching Muster'}, while ${card.name} uses ${(card.musterClasses||[]).join(' / ')}.${advancedNote}`);return;
     }
+    if(!status.housingOk){alert(`${m.name} is full (${housingUsed(p,m.uid)}/${m.housing} Housing). Every Critter occupies 1 Housing in v0.6.2.`);return;}
+    if(!status.afford){alert(`You need ${costText(m.recruitCost)} to recruit through ${m.name}. A Provision slot may be paid with any core resource.`);return;}
+    if(!pay(p,m.recruitCost,!isAiTurn()))return;
+    p.hand.splice(idx,1);
+    const r={...card,musterUid:m.uid,damage:0,tired:false,defeated:false,tool:null,attacking:false,blocking:false,recruitedTurn:state.turnNo,shield:false};
+    if(card.flags?.hearthsideRally&&p.buildReadySnapshot&&p.buildReadySnapshot.opponent>p.buildReadySnapshot.self)r.shield=true;
+    p.residents.push(r);
+    log(`${p.name} recruited ${card.name} into ${m.name}. It occupies 1 Housing and may block immediately${card.advanced?' (Advanced)':''}.`);
+    if(r.shield)log(`${card.name} entered with Shield from Hearthside Rally.`);
+    if(card.flags?.shieldBuildingOnRecruit)shieldBuildingOnRecruit(p,card.name);
     if(card.flags?.repairOnRecruit)repairPrompt(p,card.flags.repairOnRecruit,`${card.name} recruit`);
     render();
   }
@@ -463,7 +638,7 @@
     const damaged=p.village.filter(b=>b.damage>0);if(!damaged.length)return;
     const names=damaged.map((b,i)=>`${i+1}. ${b.name} (${b.damage} dmg)`).join('\n');
     const n=parseInt(prompt(`${source}: repair ${amount}. Choose Building number:\n${names}`,'1'),10)-1;
-    if(damaged[n]){damaged[n].damage=Math.max(0,damaged[n].damage-amount);log(`${source} repaired ${damaged[n].name} by ${amount}.`);}
+    if(damaged[n])repairBuilding(p,damaged[n],amount,source);
   }
 
   function playTool(cardUid,resUid){
@@ -474,16 +649,16 @@
     if(p.toolPlayed){alert('You already equipped a Tool this turn.');return;}
     if(r.tool){alert('That Critter already has a Tool.');return;}
     if(!canAfford(p,c.cost)){alert('Not enough resources.');return;}
-    pay(p,c.cost);p.hand.splice(idx,1);r.tool=c;p.toolPlayed=true;log(`${p.name} equipped ${c.name} to ${r.name}.`);render();
+    if(!pay(p,c.cost,!isAiTurn()))return;p.hand.splice(idx,1);r.tool=c;p.toolPlayed=true;log(`${p.name} equipped ${c.name} to ${r.name}.`);render();
   }
 
   function manualSupport(cardUid){
     const p=active(),idx=p.hand.findIndex(c=>c.uid===cardUid),c=p.hand[idx];if(!c||c.type!=='Support')return;
     if(c.subtype==='Reaction'&&!hasActive(p,b=>b.reactionAccess)){alert('You need active Reaction Access.');return;}
-    if(c.subtype==='Reaction'&&p.reactionPlayed){alert('You already played a Reaction this round/turn in this beta.');return;}
+    if(c.subtype==='Reaction'&&p.reactionRoundUsed===currentRound()){alert('You already played a Reaction this round.');return;}
     if(!canAfford(p,c.cost)){alert('Not enough resources.');return;}
     if(!confirm(`Resolve ${c.name} manually, pay ${costText(c.cost)}, and move it to Compost?`))return;
-    pay(p,c.cost);p.hand.splice(idx,1);p.compost.push(c);if(c.subtype==='Reaction')p.reactionPlayed=true;log(`${p.name} manually resolved ${c.name}.`);render();
+    if(!pay(p,c.cost,!isAiTurn()))return;p.hand.splice(idx,1);p.compost.push(c);if(c.subtype==='Reaction')p.reactionRoundUsed=currentRound();log(`${p.name} manually resolved ${c.name}.`);render();
   }
 
   function workshopRepair(buildingUid){
@@ -496,9 +671,15 @@
 
   function devDamage(playerIndex,buildingUid,delta){
     const p=state.players[playerIndex],b=p.village.find(x=>x.uid===buildingUid);if(!b)return;
-    const was=isRuined(b);b.damage=Math.max(0,b.damage+delta);const now=isRuined(b);
-    if(!was&&now){log(`${b.name} was Ruined.`);if(activeBuildings(p).length===0&&p.exposurePendingTurn===null){p.exposurePendingTurn=state.turnNo;log(`${p.name} has no active Buildings; response window begins.`);}}
-    if(was&&!now){log(`${b.name} was repaired and is active again.`);if(activeBuildings(p).length>0){p.exposurePendingTurn=null;p.exposed=false;}}
+    const was=isRuined(b);
+    b.damage=Math.max(0,b.damage+delta);
+    const now=isRuined(b);
+    if(!was&&now){log(`${b.name} was Ruined.`);markMusterRuin(p,b);markNoBuildingsResponse(p);}
+    if(was&&!now){
+      log(`${b.name} was repaired and is active again.`);
+      b.rehousingDueOwnTurn=null;
+      if(activeBuildings(p).length>0){p.exposurePendingOwnTurn=null;p.exposed=false;}
+    }
     render();
   }
 
@@ -539,24 +720,50 @@
     a.blockerUid=b.uid;b.blocking=true;log(`${b.name} blocks ${active().residents.find(r=>r.uid===a.attackerUid)?.name}.`);render();
   }
 
+  function dealToResident(r,amount,source){
+    if(amount<=0)return 0;
+    if(r.shield){
+      r.shield=false;
+      log(`${r.name}'s Shield prevented ${amount} damage${source?` from ${source}`:''}.`);
+      return 0;
+    }
+    r.damage+=amount;
+    return amount;
+  }
+
   function dealToTarget(defender,attack,amount,attacker){
     if(amount<=0)return;
     if(attack.target.kind==='hearthseed'){
       if(defender.exposed){state.winner=active().name;log(`${active().name} lands an unblocked attack on an Exposed Hearthseed and wins.`);return;}
-      defender.hearthseed=Math.max(0,defender.hearthseed-amount);log(`${defender.name}'s Hearthseed takes ${amount} damage.`);if(defender.hearthseed<=0)state.winner=active().name;
+      defender.hearthseed=Math.max(0,defender.hearthseed-amount);
+      log(`${defender.name}'s Hearthseed takes ${amount} damage.`);
+      if(defender.hearthseed<=0)state.winner=active().name;
     }else{
       const b=defender.village.find(x=>x.uid===attack.target.uid);if(!b)return;
+      if(b.shield){
+        b.shield=false;
+        log(`${b.name}'s Shield prevented ${amount} damage.`);
+        return;
+      }
       const before=b.damage;b.damage+=amount;log(`${b.name} takes ${amount} damage.`);
-      if(attacker.flags?.sabotageProduction&&b.production&&amount>0){defender.sabotagedBuildings[b.uid]=true;log(`${b.name} will produce nothing next Harvest.`);}
-      if(before<b.durability&&b.damage>=b.durability){log(`${b.name} is Ruined.`);if(activeBuildings(defender).length===0&&defender.exposurePendingTurn===null){defender.exposurePendingTurn=state.turnNo;log(`${defender.name} has no active Buildings; response window begins.`);}}
+      if(attacker.flags?.sabotageProduction&&b.production){defender.sabotagedBuildings[b.uid]=true;log(`${b.name} will produce nothing next Harvest.`);}
+      if(before<b.durability&&b.damage>=b.durability){
+        log(`${b.name} is Ruined.`);
+        markMusterRuin(defender,b);
+        markNoBuildingsResponse(defender);
+      }
     }
   }
 
   function defeatResident(owner,r){
-    if(r.defeated)return;r.defeated=true;r.attacking=false;r.blocking=false;
+    if(r.defeated)return;
+    r.defeated=true;r.attacking=false;r.blocking=false;
     if(r.flags?.onDefeatProvision)gain(owner,{provision:r.flags.onDefeatProvision});
     if(r.tool){owner.compost.push(r.tool);r.tool=null;}
-    const idx=owner.residents.findIndex(x=>x.uid===r.uid);if(idx>=0)owner.residents.splice(idx,1);owner.compost.push({...r,damage:0,tired:false,defeated:false,musterUid:undefined});
+    const idx=owner.residents.findIndex(x=>x.uid===r.uid);if(idx>=0)owner.residents.splice(idx,1);
+    const card={...r,damage:0,tired:false,defeated:false,musterUid:undefined,shield:false};
+    ['attacking','blocking','recruitedTurn'].forEach(k=>delete card[k]);
+    owner.compost.push(card);
     log(`${r.name} is defeated and goes to Compost.`);
   }
 
@@ -570,11 +777,13 @@
       const atkPower=residentMight(atk,a.target);
       if(a.blockerUid){
         const blk=o.residents.find(r=>r.uid===a.blockerUid);if(!blk)return;
-        const blkPower=residentMight(blk,{kind:'critter'});atk.damage+=blkPower;blk.damage+=atkPower;
-        log(`${atk.name} and ${blk.name} deal ${atkPower}/${blkPower} combat damage.`);
-        const excess=Math.max(0,atkPower-residentGrit(blk));
+        const blkPower=residentMight(blk,{kind:'critter'});
+        const dealtToBlk=dealToResident(blk,atkPower,atk.name);
+        dealToResident(atk,blkPower,blk.name);
+        log(`${atk.name} and ${blk.name} resolve ${atkPower}/${blkPower} combat damage.`);
+        const excess=Math.max(0,dealtToBlk-residentGrit(blk));
         if(excess>0&&atk.flags?.trample)dealToTarget(o,a,Math.min(excess,atk.flags.trample),atk);
-        if(excess>0&&atk.flags?.crushingBlow)dealToTarget(o,a,Math.min(atk.flags.crushingBlow,excess),atk);
+        if(atk.flags?.crushingBlow&&blk.damage>=residentGrit(blk))dealToTarget(o,a,atk.flags.crushingBlow,atk);
       }else dealToTarget(o,a,atkPower,atk);
     });
     [...p.residents].forEach(r=>{if(r.damage>=residentGrit(r))defeatResident(p,r);});
@@ -627,10 +836,10 @@
     if(mine&&!isAiTurn()&&b.muster&&!isRuined(b)&&currentPhase()==='Build')attrs.push(`data-muster-uid="${b.uid}"`);
     if(b.muster)attrs.push(`data-home-building="${b.uid}"`);
     if(attackable)attrs.push(`data-attack-target="building:${b.uid}"`);
-    const acceptLine=b.muster?`<div class="musterAccept"><b>Accepts:</b> ${esc((b.accepts||[]).join(' · '))} <span>• Recruit ${costText(b.recruitCost)}</span></div>`:'';
+    const acceptLine=b.muster?`<div class="musterAccept"><b>Muster — ${esc(b.musterClass||'')}</b> <span>• Recruit ${costText(b.recruitCost)} • every Critter uses 1 Housing</span></div>`:'';
     const housed=b.muster?p.residents.filter(r=>r.musterUid===b.uid):[];
     const residents=b.muster?`<div class="musterResidents"><span class="tiny">Residents</span>${housed.length?housed.map(r=>`<span class="residentChip" data-linked-resident="${r.uid}" title="${esc(r.name)}">${esc(r.name)}</span>`).join(''):'<span class="tiny">Empty</span>'}</div>`:'';
-    return `<div class="card buildingCard ${isRuined(b)?'ruined':''} ${attackable?'attackDrop':''}" ${attrs.join(' ')}>${buildingFx(b.uid)}<div class="title">${esc(b.name)}</div><div class="type">${esc(b.subtype)} ${isRuined(b)?'• RUINED':''}</div><div class="numbers">🛡️ ${b.damage}/${b.durability} damage · ✨ ${isRuined(b)?0:b.prosperity}${b.muster?` · 🏠 ${used}/${b.housing}`:''}</div>${acceptLine}<div class="rules">${esc(b.text||'')}</div>${b.manual?`<span class="manual">Manual: ${esc(b.manual)}</span>`:''}${residents}<div class="actions">${state.dev?`<button class="ghost" onclick="H.devDamage(${pi},${b.uid},1)">+ dmg</button><button class="ghost" onclick="H.devDamage(${pi},${b.uid},-1)">repair</button>`:''}${b.repairAbility&&!isRuined(b)&&mine&&!isAiTurn()&&currentPhase()==='Build'?`<button onclick="H.workshopRepair(${b.uid})">Workshop repair</button>`:''}</div></div>`;
+    return `<div class="card buildingCard ${isRuined(b)?'ruined':''} ${attackable?'attackDrop':''}" ${attrs.join(' ')}>${buildingFx(b.uid)}<div class="title">${esc(b.name)}</div><div class="type">${esc(b.subtype)} ${isRuined(b)?'• RUINED':''}</div><div class="numbers">🛡️ ${b.damage}/${b.durability} damage · ✨ ${isRuined(b)?0:b.prosperity}${b.muster?` · 🏠 ${used}/${b.housing}`:''}${b.shield?' · 🛡 Shield':''}</div>${b.shield?'<span class="shieldBadge">🛡 Shield</span>':''}${acceptLine}<div class="rules">${esc(b.text||'')}</div>${b.manual?`<span class="manual">Manual: ${esc(b.manual)}</span>`:''}${residents}<div class="actions">${state.dev?`<button class="ghost" onclick="H.devDamage(${pi},${b.uid},1)">+ dmg</button><button class="ghost" onclick="H.devDamage(${pi},${b.uid},-1)">repair</button>`:''}${b.repairAbility&&!isRuined(b)&&mine&&!isAiTurn()&&currentPhase()==='Build'?`<button onclick="H.workshopRepair(${b.uid})">Workshop repair</button>`:''}</div></div>`;
   }
 
   function residentBlock(p,muid,pi){
@@ -646,7 +855,7 @@
     const toolTarget=humanControlled&&currentPhase()==='Build'&&!r.tool&&!r.defeated;
     const freshNote=fresh?'<span class="freshTag" title="Can block now, but cannot attack until your next turn unless it gains Eager.">🌱 New · no attack</span>':'';
     const home=p.village.find(b=>b.uid===r.musterUid);
-    return `<div class="card fieldCritter ${ready?'':'inactive'} ${r.tired?'tired':''} ${r.attacking?'attacking':''} ${r.blocking?'blocking':''} ${canAtk?'draggableResident':''}" data-field-resident="${r.uid}" data-home-link="${r.musterUid||''}" ${canAtk?`draggable="true" data-attacker-uid="${r.uid}"`:''} ${toolTarget?`data-resident-drop="${r.uid}"`:''}><div class="title">${esc(r.name)}</div><div class="type">${esc((r.tags||[]).join(' · '))}</div><div class="numbers">🏠${r.housing} · 💪${r.might} · ❤️ ${r.damage}/${residentGrit(r)}</div><div class="homeBadge">🏡 ${esc(home?.name||'No active home')}</div>${freshNote}${r.tool?`<div class="tiny">🧰 ${esc(r.tool.name)}</div>`:''}${residentHasEager(r)?'<div class="tiny">⚡ Eager</div>':''}${canAtk?`<div class="targetline fallbackAction"><select class="smallSelect" id="t-${r.uid}">${targetOptions(opponent())}</select><button onclick="H.declareAttack(${r.uid},document.getElementById('t-${r.uid}').value)">Attack</button></div>`:''}</div>`;
+    return `<div class="card fieldCritter ${ready?'':'inactive'} ${r.tired?'tired':''} ${r.attacking?'attacking':''} ${r.blocking?'blocking':''} ${canAtk?'draggableResident':''}" data-field-resident="${r.uid}" data-home-link="${r.musterUid||''}" ${canAtk?`draggable="true" data-attacker-uid="${r.uid}"`:''} ${toolTarget?`data-resident-drop="${r.uid}"`:''}><div class="title">${esc(r.name)}</div><div class="type">${esc(`Muster — ${(r.musterClasses||[]).join(' | ')}${r.advanced?' · ADVANCED':''}`)}</div><div class="numbers">💪${r.might} · ❤️ ${r.damage}/${residentGrit(r)}${r.shield?' · 🛡 Shield':''}</div><div class="homeBadge">🏡 ${esc(home?.name||'No active home')}</div>${freshNote}${r.tool?`<div class="tiny">🧰 ${esc(r.tool.name)}</div>`:''}${residentHasEager(r)?'<div class="tiny">⚡ Eager</div>':''}${canAtk?`<div class="targetline fallbackAction"><select class="smallSelect" id="t-${r.uid}">${targetOptions(opponent())}</select><button onclick="H.declareAttack(${r.uid},document.getElementById('t-${r.uid}').value)">Attack</button></div>`:''}</div>`;
   }
 
   function fieldArea(p,pi){
@@ -663,17 +872,21 @@
     const mine=pi===state.active;
     const hearthAttackable=!mine&&(currentPhase()==='Build'||currentPhase()==='Attack')&&!state.cleanup;
     const header=`<div class="playerHeader"><div><div class="tiny">${label}</div><h2>${esc(p.name)} — ${esc(faction(p).short)}</h2><div class="tiny">Hearthkeeper: ${esc(faction(p).hearthkeeper)}</div></div><div class="stats"><span class="stat hearthStat ${hearthAttackable?'attackDrop':''}" ${hearthAttackable?'data-attack-target="hearthseed:0"':''}>🔥 <button class="ghost" style="padding:1px 5px" onclick="H.changeHearth(${pi},-1)">−</button> ${p.hearthseed} <button class="ghost" style="padding:1px 5px" onclick="H.changeHearth(${pi},1)">+</button></span><span class="stat">✨ ${prosperity(p)}</span>${p.exposed?'<span class="stat">⚠️ EXPOSED</span>':''}</div></div>`;
-    const resources=`<div class="resrow">${resControls(p,pi)}</div>`;
-    const warning=p.exposurePendingTurn!==null&&!p.exposed?'<div class="notice">⚠️ No active Buildings: response window is active.</div>':'';
+    const resources=`<div class="resrow">${resControls(p,pi)}</div><div class="resourceRule">📦 Provision costs may be paid with Provision or 1 core resource per slot.</div>`;
+    const warning=p.exposurePendingOwnTurn!==null&&!p.exposed?'<div class="notice">⚠️ No active Buildings: your one-response-turn window is active.</div>':'';
     const hint=mine&&!isAiTurn()&&currentPhase()==='Build'?'<div class="dragHint">Recruitable Critters glow softly in your hand. Drag one onto a compatible Muster, or drag a Blueprint into your Village.</div>':'';
     const zones=orientation==='opponent'?`${villageArea(p,pi)}${fieldArea(p,pi)}`:`${fieldArea(p,pi)}${villageArea(p,pi)}`;
     return `<section class="panel playerPanel ${mine?'activePlayerPanel':'opponentPanel'}">${header}${resources}${warning}${hint}${zones}</section>`;
   }
 
   function homeHint(card,p){
-    const accepting=musters(p).filter(m=>m.accepts?.some(tag=>card.tags.includes(tag)));
-    if(!accepting.length)return `<div class="homeHint noHome">🏠 No active Muster currently accepts this Critter.</div>`;
-    return `<div class="homeHint">🏠 ${accepting.map(m=>{const s=musterStatus(p,m,card);const note=!s.housingOk?'FULL':!s.afford?`need ${costText(m.recruitCost)}`:'ready';return `${esc(m.name)} <span>${housingUsed(p,m.uid)}/${m.housing} · ${note}</span>`;}).join('<br>')}</div>`;
+    const accepting=musters(p).filter(m=>musterMatches(card,m));
+    if(!accepting.length)return `<div class="homeHint noHome">🏠 No active ${card.advanced?'upgraded ':''}Muster matches ${(card.musterClasses||[]).join(' / ')}.</div>`;
+    return `<div class="homeHint">🏠 ${accepting.map(m=>{
+      const s=musterStatus(p,m,card);
+      const note=!s.housingOk?'FULL':!s.afford?`need ${costText(m.recruitCost)}`:'ready';
+      return `${esc(m.name)} <span>${esc(m.musterClass)} · ${housingUsed(p,m.uid)}/${m.housing} · ${note}</span>`;
+    }).join('<br>')}</div>`;
   }
 
   function handCard(c,p=active(),interactive=true){
@@ -694,14 +907,14 @@
     }
     if(interactive&&state.cleanup)act+=`<button class="danger" onclick="H.discard(${c.uid})">Discard</button>`;
     const showHomes=c.type==='Critter'&&state.mode==='ai' ? homeHint(c,p) : (c.type==='Critter'&&currentPhase()==='Build'?homeHint(c,p):'');
-    return `<div class="card handCard ${dragAttr?'isDraggable':''} ${interactive?'':'handLocked'} ${recruitNow?'recruitReady':''}" ${dragAttr}>${recruitNow?'<div class="recruitCue">✓ Recruitable</div>':''}<div class="title">${esc(c.name)}</div><div class="type">${c.type==='Critter'?esc(c.tags.join(' · ')):esc(c.subtype)}</div>${c.type==='Critter'?`<div class="numbers">🏠${c.housing} · 💪${c.might} · ❤️${c.grit}</div>${showHomes}`:`<div class="numbers">Cost: ${costText(c.cost)}</div>`}<div class="rules">${esc(c.text||'')}</div>${c.flags?.manual?`<span class="manual">Manual: ${esc(c.flags.manual)}</span>`:''}<div class="actions fallbackAction">${act}</div></div>`;
+    return `<div class="card handCard ${dragAttr?'isDraggable':''} ${interactive?'':'handLocked'} ${recruitNow?'recruitReady':''}" ${dragAttr}>${recruitNow?'<div class="recruitCue">✓ Recruitable</div>':''}<div class="title">${esc(c.name)}</div><div class="type">${c.type==='Critter'?esc(`Muster — ${(c.musterClasses||[]).join(' | ')}${c.advanced?' · ADVANCED':''}`):esc(c.subtype)}</div>${c.type==='Critter'?`<div class="numbers">💪${c.might} · ❤️${c.grit}${c.advanced?' · ⭐ Advanced':''}</div>${showHomes}`:`<div class="numbers">Cost: ${costText(c.cost)}</div>`}<div class="rules">${esc(c.text||'')}</div>${c.flags?.manual?`<span class="manual">Manual: ${esc(c.flags.manual)}</span>`:''}<div class="actions fallbackAction">${act}</div></div>`;
   }
 
   function blueprintFullCard(bp,p){
     const used=!!p.usedBlueprints?.includes(bp.id);
-    const accepts=bp.accepts?.length?`<div class="fullCardLine"><b>Accepts:</b> ${esc(bp.accepts.join(', '))}</div>`:'';
+    const musterLine=bp.muster?`<div class="fullCardLine"><b>Muster:</b> ${esc(bp.musterClass)} · 🏠 ${bp.housing}${bp.upgradeFrom?' · Upgraded':''}</div>`:'';
     const recruit=bp.recruitCost?`<div class="fullCardLine"><b>Recruit:</b> ${costText(bp.recruitCost)}</div>`:'';
-    return `<div class="blueprintFullCard ${used?'used':''}"><div class="fullCardTop"><span class="fullCardName">${esc(bp.name)}</span>${used?'<span class="usedTag">USED</span>':''}</div><div class="fullCardType">${esc(bp.subtype)}</div><div class="fullCardArt">BUILDING ART</div><div class="fullCardStats"><span>Cost ${costText(bp.cost)}</span><span>🛡️ ${bp.durability}</span><span>✨ ${bp.prosperity}</span>${bp.housing?`<span>🏠 ${bp.housing}</span>`:''}</div>${accepts}${recruit}<div class="fullCardRules">${esc(bp.text||'')}</div>${bp.manual?`<div class="manual">Manual in beta: ${esc(bp.manual)}</div>`:''}</div>`;
+    return `<div class="blueprintFullCard ${used?'used':''}"><div class="fullCardTop"><span class="fullCardName">${esc(bp.name)}</span>${used?'<span class="usedTag">USED</span>':''}</div><div class="fullCardType">${esc(bp.subtype)}</div><div class="fullCardArt">BUILDING ART</div><div class="fullCardStats"><span>Cost ${costText(bp.cost)}</span><span>🛡️ ${bp.durability}</span><span>✨ ${bp.prosperity}</span>${bp.housing?`<span>🏠 ${bp.housing}</span>`:''}</div>${musterLine}${recruit}<div class="fullCardRules">${esc(bp.text||'')}</div>${bp.manual?`<div class="manual">Manual in beta: ${esc(bp.manual)}</div>`:''}</div>`;
   }
 
   function blueprintPanel(p=active()){
@@ -728,7 +941,7 @@
   }
 
   function renderSetup(){
-    app.innerHTML=`<div class="setup"><div class="beta">CLIENT BETA v0.4.0</div><h1>Hearth & Hollow</h1><p>A local, client-side rules prototype for the v0.6.1 Village Muster playtest.</p><h2 class="setupPrompt">Choose your village</h2><div class="setupGrid factionSelect"><button class="choice factionButton" id="choose-as"><span class="choiceIcon">🥜💦</span><span><strong>Porchlight — Acorn / Sap</strong><small>Hazel Underleaf · quick, scrappy pressure</small></span><span class="choicePlay">Play Porchlight →</span></button><button class="choice factionButton" id="choose-rp"><span class="choiceIcon">🫚🪨</span><span><strong>Stonecap — Root / Pebble</strong><small>Mosswick Grubroot · sturdy, recursive defense</small></span><span class="choicePlay">Play Stonecap →</span></button></div><div class="setupNote"><b>Solo:</b> the AI automatically pilots the other starter village. Pick Porchlight and you face Mosswick; pick Stonecap and you face Hazel.</div><div class="setupActions"><button class="ghost" id="start-hotseat">Hot-seat two player</button></div><p class="footerNote"><b>v0.4.0:</b> board architecture pass — separate Field/Village zones, recruit-ready glow, and a collapsible Blueprint drawer with full-card preview.</p></div>`;
+    app.innerHTML=`<div class="setup"><div class="beta">CLIENT BETA v0.5.0</div><h1>Hearth & Hollow</h1><p>A local, client-side rules prototype for the v0.6.2 Muster Classes playtest.</p><h2 class="setupPrompt">Choose your village</h2><div class="setupGrid factionSelect"><button class="choice factionButton" id="choose-as"><span class="choiceIcon">🥜💦</span><span><strong>Porchlight — Acorn / Sap</strong><small>Hazel Underleaf · quick, scrappy pressure</small></span><span class="choicePlay">Play Porchlight →</span></button><button class="choice factionButton" id="choose-rp"><span class="choiceIcon">🫚🪨</span><span><strong>Stonecap — Root / Pebble</strong><small>Mosswick Grubroot · sturdy, recursive defense</small></span><span class="choicePlay">Play Stonecap →</span></button></div><div class="setupNote"><b>Solo:</b> the AI automatically pilots the other starter village. Pick Porchlight and you face Mosswick; pick Stonecap and you face Hazel.</div><div class="setupActions"><button class="ghost" id="start-hotseat">Hot-seat two player</button></div><p class="footerNote"><b>v0.5.0:</b> v0.6.2 rules migration — Muster Classes, 1-Housing Critters, Advanced recruitment, flexible Provision payment, Shield, rehousing, and initiative.</p></div>`;
     document.getElementById('choose-as').onclick=()=>newGame('ai','AS');
     document.getElementById('choose-rp').onclick=()=>newGame('ai','RP');
     document.getElementById('start-hotseat').onclick=()=>newGame('hotseat');
@@ -760,7 +973,7 @@
     const lockedNote=state.mode==='ai'&&ai?'<div class="notice aiTurnNotice">🤖 The opponent is taking its turn. Your hand and Blueprint Deck stay in place but are temporarily locked.</div>':'';
     const handHtml=`<section class="panel">${lockedNote}<div class="playerHeader"><div><h3>${handTitle} (${handOwner.hand.length})</h3><div class="tiny">Field Deck ${handOwner.fieldDeck.length} · Compost ${handOwner.compost.length}</div></div>${state.cleanup&&handInteractive?`<div class="notice">Rest: discard ${Math.max(0,handOwner.hand.length-7)} card(s). The turn ends automatically at 7.</div>`:''}</div><div class="hand">${handOwner.hand.map(c=>handCard(c,handOwner,handInteractive)).join('')||'<div class="tiny">Hand empty.</div>'}</div></section>`;
 
-    app.innerHTML=`<div class="app"><header class="topbar"><div><div class="brand">Hearth & Hollow <span class="beta">CLIENT BETA v0.4.0</span></div><div class="tiny">Round ${currentRound()} · Turn ${state.turnNo} · ${esc(turnP.name)} · ${status}${state.mode==='ai'?' · Solo vs AI':''}</div></div><div class="turnbox">${phaseBar()}${ai?'<span class="aiBadge">🤖 AI TURN</span>':''}<button onclick="H.requestEndTurn()" ${state.pendingHarvest||state.pass||ai?'disabled':''}>End turn</button><button class="ghost" onclick="H.reset()">Reset</button></div></header>${state.winner?`<div class="panel notice win"><h2>🏆 ${esc(state.winner)} wins the Frost Trial!</h2></div>`:''}<div class="layout"><main class="main">${topPanel}<div class="frostTrialDivider"><span>❄ FROST TRIAL</span></div>${bottomPanel}${combatPanel()}${handHtml}</main><aside class="side">${blueprintPanel(bpOwner)}<section class="panel"><h3>Game Log</h3><div class="log">${state.log.map(x=>`<div>${esc(x)}</div>`).join('')}</div></section>${state.mode==='ai'?`<section class="panel"><h3>v0.4.0 board test</h3><p class="tiny"><b>Field vs Village:</b> Critters now live in a dedicated Field row while Buildings stay in the Village.</p><p class="tiny"><b>Recruit clarity:</b> playable Critters glow softly in hand and compatible Musters light up while dragging.</p></section>`:''}</aside></div></div>${state.pass&&!state.winner&&state.mode!=='ai'?`<div class="passOverlay"><div class="passCard"><div class="beta">PASS DEVICE</div><h1>${esc(active().name)}'s turn</h1><p>${esc(faction(active()).short)}</p><p class="tiny">Dawn and Harvest will resolve after you reveal.</p><button onclick="H.closePass()">Reveal hand & start turn</button></div></div>`:''}${harvestChoiceOverlay()}`;
+    app.innerHTML=`<div class="app"><header class="topbar"><div><div class="brand">Hearth & Hollow <span class="beta">CLIENT BETA v0.5.0</span></div><div class="tiny">Round ${currentRound()} · Turn ${state.turnNo} · ${esc(turnP.name)} · ${status}${state.mode==='ai'?' · Solo vs AI':''}</div></div><div class="turnbox">${phaseBar()}${ai?'<span class="aiBadge">🤖 AI TURN</span>':''}<button onclick="H.requestEndTurn()" ${state.pendingHarvest||state.pass||ai?'disabled':''}>End turn</button><button class="ghost" onclick="H.reset()">Reset</button></div></header>${state.winner?`<div class="panel notice win"><h2>🏆 ${esc(state.winner)} wins the Frost Trial!</h2></div>`:''}<div class="layout"><main class="main">${topPanel}<div class="frostTrialDivider"><span>❄ FROST TRIAL</span></div>${bottomPanel}${combatPanel()}${handHtml}</main><aside class="side">${blueprintPanel(bpOwner)}<section class="panel"><h3>Game Log</h3><div class="log">${state.log.map(x=>`<div>${esc(x)}</div>`).join('')}</div></section>${state.mode==='ai'?`<section class="panel"><h3>v0.5.0 · rules v0.6.2</h3><p class="tiny"><b>Field vs Village:</b> Critters now live in a dedicated Field row while Buildings stay in the Village.</p><p class="tiny"><b>Recruit clarity:</b> playable Critters glow softly in hand and compatible Musters light up while dragging.</p></section>`:''}</aside></div></div>${state.pass&&!state.winner&&state.mode!=='ai'?`<div class="passOverlay"><div class="passCard"><div class="beta">PASS DEVICE</div><h1>${esc(active().name)}'s turn</h1><p>${esc(faction(active()).short)}</p><p class="tiny">Dawn and Harvest will resolve after you reveal.</p><button onclick="H.closePass()">Reveal hand & start turn</button></div></div>`:''}${harvestChoiceOverlay()}`;
     bindDragAndDrop();
   }
 
