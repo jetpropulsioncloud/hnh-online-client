@@ -25,13 +25,10 @@ jobs:
           s=s.replace("critter+'\\n  function handPanel',s,count=1,flags=re.S)","lambda _m: critter+'\\n  function handPanel',s,count=1,flags=re.S)")
           s=s.replace("combat+'\\n  function reactionTray',s,count=1,flags=re.S)","lambda _m: combat+'\\n  function reactionTray',s,count=1,flags=re.S)")
           cut=s.index("\ntest=Path('tests/ui-coordinator-test.js')")
-          tail="\ntest=Path('tests/ui-coordinator-test.js')\n"
-          tail+="t=test.read_text().replace('v=079','v=080').replace('v0.7.9','v0.8.0')\n"
-          tail+="t += \\\"\\nassert(client.includes('combatLinkOverlay'),'persistent combat arrow overlay missing');\\nassert(client.includes('combatBlockPath'),'blue block arrow path missing');\\nassert(client.includes('blockDraggable'),'direct block dragging missing');\\nassert(client.includes('musterIdentity')&&client.includes('musterRulesText'),'Muster identity cleanup missing');\\nconsole.log('✓ persistent attack/block arrows and clearer Muster identity');\\n\\\"\n"
-          tail+="test.write_text(t)\n"
-          p.write_text(s[:cut]+tail)
+          p.write_text(s[:cut])
           PY
           python tools/v080_refactor.py
+          python -c "from pathlib import Path; p=Path('tests/ui-coordinator-test.js'); s=p.read_text().replace('v=079','v=080').replace('v0.7.9','v0.8.0'); s += \"\\nassert(client.includes('combatLinkOverlay'),'persistent combat arrow overlay missing');\\nassert(client.includes('combatBlockPath'),'blue block arrow path missing');\\nassert(client.includes('blockDraggable'),'direct block dragging missing');\\nassert(client.includes('musterIdentity')&&client.includes('musterRulesText'),'Muster identity cleanup missing');\\nconsole.log('✓ persistent attack/block arrows and clearer Muster identity');\\n\"; p.write_text(s)"
       - run: |
           node tests/smoke-test.js
           node tests/rules-test.js
