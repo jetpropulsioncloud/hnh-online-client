@@ -27,7 +27,7 @@
   fieldRail.className = 'sideDeckRail fieldDeckRail';
   fieldRail.setAttribute('aria-label', 'Field Deck');
   fieldRail.innerHTML = `
-    <span class="deckStack fieldStack"><i></i></span>
+    <span class="deckStack fieldStack"></span>
     <span class="sideDeckLabel"><b>Field Deck</b><strong class="fieldDeckCount">—</strong><small>cards remaining</small></span>
     <span class="compostCount">🍂 <b>0</b></span>`;
   document.body.appendChild(fieldRail);
