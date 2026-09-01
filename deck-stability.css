@@ -1,7 +1,0 @@
-/* Keep the physical Field Deck and Blueprint Deck visually stable during card inspection. */
-.sideDeckRail.visible,
-body:has(.cardInspector.peek) .sideDeckRail,
-body:has(.cardInspector.pinned) .sideDeckRail{
-  opacity:1!important;
-  filter:none;
-}

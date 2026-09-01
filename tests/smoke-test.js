@@ -2,7 +2,7 @@
 
 const fs = require('fs');
 global.window = {};
-require('./data.js');
+require('../data.js');
 
 const { decks } = window.HNH_DATA;
 const expectedClasses = {
@@ -51,12 +51,12 @@ console.log('✓ six Muster Classes represented');
 console.log('✓ Critters have no Housing stat and occupy 1 slot in engine logic');
 console.log('✓ Advanced roster: Juniper, Briarhart, Clem');
 
-// Static runtime wiring smoke. The legacy app.js client was retired; index.html
-// must now point at the current rules-first client and coordinated UI layer.
+// Static runtime wiring smoke. The browser should load only the four consolidated runtime assets.
 const html = fs.readFileSync('index.html', 'utf8');
-assert(html.includes('client-v062.js'), 'current client-v062.js is not loaded');
-assert(html.includes('engine-v062.js'), 'v0.6.2 engine is not loaded');
-assert(html.includes('ui-coordinator.js'), 'UI coordinator is not loaded');
-assert(!html.includes('src="app.js"'), 'legacy app.js must not be loaded');
-assert(html.includes('Tabletop Client v0.7.3'), 'client presentation version mismatch');
-console.log('✓ current client/runtime wiring smoke');
+assert(html.includes('styles.css?v=074'), 'consolidated styles.css is not loaded');
+assert(html.includes('data.js?v=074'), 'consolidated data.js is not loaded');
+assert(html.includes('engine.js?v=074'), 'consolidated engine.js is not loaded');
+assert(html.includes('client.js?v=074'), 'consolidated client.js is not loaded');
+assert(!html.includes('client-v062.js') && !html.includes('engine-v062.js'), 'legacy split runtime is still referenced');
+assert(html.includes('Tabletop Client v0.7.4'), 'client presentation version mismatch');
+console.log('✓ consolidated client/runtime wiring smoke');
