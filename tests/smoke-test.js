@@ -54,17 +54,19 @@ console.log('✓ Advanced roster: Juniper, Briarhart, Clem');
 const stonecapFounding=decks.RP.founding;
 assert(stonecapFounding.text.includes('The first time each round another Building you control would take attack damage, prevent 1 of it.'),'Stonecap Root Cellar text drifted from the current card');
 const stocked=decks.AS.blueprints.find(b=>b.id==='stocked_squirrel_armory');
-assert(stocked.upgradeGain?.provision===1&&!stocked.squirrelMightBonus,'Stocked Squirrel Armory must use the latest editable upgrade-gain text');
+assert(stocked.squirrelMightBonus===1&&!stocked.upgradeGain,'Stocked Squirrel Armory must match v0.6.2 latest: housed Squirrels get +1 Might');
+assert(decks.AS.hearthkeeperCard?.name==='Hazel Underleaf'&&decks.RP.hearthkeeperCard?.name==='Mosswick Grubroot','Hearthkeeper reference cards missing');
+assert(decks.AS.name==='Hazel Underleaf'&&decks.RP.name==='Mosswick Grubroot','starter deck display names should be Hearthkeeper names');
 assert(decks.AS.field.find(c=>c.id==='bramble_climbing_kit').text.includes('may attack the turn it is recruited'),'Eager reminder text missing');
 assert(decks.RP.field.find(c=>c.id==='stone_toad_bruiser').text.includes('when this defeats a blocker'),'Crushing Blow reminder text missing');
 console.log('✓ current printed ability wording checkpoints');
 
 // Static runtime wiring smoke. The browser should load only the four consolidated runtime assets.
 const html = fs.readFileSync('index.html', 'utf8');
-assert(html.includes('styles.css?v=075'), 'consolidated styles.css is not loaded');
-assert(html.includes('data.js?v=075'), 'consolidated data.js is not loaded');
-assert(html.includes('engine.js?v=075'), 'consolidated engine.js is not loaded');
-assert(html.includes('client.js?v=075'), 'consolidated client.js is not loaded');
+assert(html.includes('styles.css?v=076'), 'consolidated styles.css is not loaded');
+assert(html.includes('data.js?v=076'), 'consolidated data.js is not loaded');
+assert(html.includes('engine.js?v=076'), 'consolidated engine.js is not loaded');
+assert(html.includes('client.js?v=076'), 'consolidated client.js is not loaded');
 assert(!html.includes('client-v062.js') && !html.includes('engine-v062.js'), 'legacy split runtime is still referenced');
-assert(html.includes('Tabletop Client v0.7.5'), 'client presentation version mismatch');
+assert(html.includes('Tabletop Client v0.7.6'), 'client presentation version mismatch');
 console.log('✓ consolidated client/runtime wiring smoke');

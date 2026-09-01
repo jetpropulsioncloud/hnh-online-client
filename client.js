@@ -4,12 +4,14 @@
   const ICON={acorn:'🥜',sap:'💦',root:'🫚',pebble:'🪨',provision:'📦'};
   const RLABEL={acorn:'Acorn',sap:'Sap',root:'Root',pebble:'Pebble',provision:'Provision'};
   const AI_PROFILES={
-    beginner:{label:'Beginner',delay:1250,maxSteps:4,recruitUntil:3,buildUntil:3,attackers:2},
-    standard:{label:'Standard',delay:750,maxSteps:6,recruitUntil:5,buildUntil:4,attackers:3},
-    hard:{label:'Hard',delay:450,maxSteps:8,recruitUntil:6,buildUntil:5,attackers:4}
+    beginner:{label:'Beginner',skill:'beginner',maxSteps:6,recruitUntil:6,buildUntil:5,attackers:4},
+    standard:{label:'Standard',skill:'standard',maxSteps:6,recruitUntil:6,buildUntil:5,attackers:4},
+    hard:{label:'Hard',skill:'hard',maxSteps:6,recruitUntil:6,buildUntil:5,attackers:4}
   };
-  let game=null,toast='',aiTimer=null,drawer=null,aiDifficulty='beginner';
+  const AI_PACES={slow:{label:'Deliberate',delay:1250},normal:{label:'Normal',delay:800}};
+  let game=null,toast='',aiTimer=null,drawer=null,aiDifficulty='beginner',aiPace='slow';
   const aiProfile=()=>AI_PROFILES[aiDifficulty]||AI_PROFILES.beginner;
+  const aiPaceProfile=()=>AI_PACES[aiPace]||AI_PACES.slow;
 
   const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[m]));
   const costText=cost=>!cost||!Object.keys(cost).length?'Free':Object.entries(cost).map(([r,n])=>`${n>1?n:''}${ICON[r]||r}`).join(' + ');
@@ -17,10 +19,10 @@
   const humanIndex=()=>game?.mode==='ai'?1-game.aiIndex:game?.active??0;
   const faction=p=>decks[p.factionKey];
   const setToast=msg=>{toast=msg;clearTimeout(setToast.t);setToast.t=setTimeout(()=>{toast='';render();},2400);};
-  const aiNote=msg=>{toast=msg;clearTimeout(setToast.t);setToast.t=setTimeout(()=>{toast='';render();},Math.max(1700,aiProfile().delay+450));};
+  const aiNote=msg=>{toast=msg;clearTimeout(setToast.t);setToast.t=setTimeout(()=>{toast='';render();},Math.max(1700,aiPaceProfile().delay+450));};
 
-  function newMatch(mode,key='AS',difficulty='beginner'){
-    clearTimeout(aiTimer);drawer=null;aiDifficulty=AI_PROFILES[difficulty]?difficulty:'beginner';
+  function newMatch(mode,key='AS',difficulty='beginner',pace='slow'){
+    clearTimeout(aiTimer);drawer=null;aiDifficulty=AI_PROFILES[difficulty]?difficulty:'beginner';aiPace=AI_PACES[pace]?pace:'slow';
     game=E.createGame({mode,humanFaction:key});
     E.startGame(game);
     render();scheduleAI();
@@ -42,7 +44,7 @@
     clearTimeout(aiTimer);
     if(!game||game.winner||game.mode!=='ai'||game.active!==game.aiIndex)return;
     if(game.phase==='Block')return;
-    aiTimer=setTimeout(runAI,aiProfile().delay);
+    aiTimer=setTimeout(runAI,aiPaceProfile().delay);
   }
 
   function runAI(){
@@ -60,13 +62,13 @@
         if(!p.freeProductionBuilt&&free.length){game._aiSteps++;const pick=chooseAIProduction(p,free);E.build(game,pi,pick.id);aiNote(`AI builds ${pick.name}.`);render();scheduleAI();return;}
         const critters=p.hand.filter(c=>c.type==='Critter').map(c=>({c,ms:E.legalMusters(game,pi,c)})).filter(x=>x.ms.length);
         if(critters.length&&game._aiSteps<aiProfile().recruitUntil){
-          critters.sort((a,b)=>(b.c.might+b.c.grit)-(a.c.might+a.c.grit));game._aiSteps++;
-          const pick=critters[0];E.recruit(game,pi,pick.c.uid,pick.ms[0].uid);aiNote(`AI recruits ${pick.c.name}.`);render();scheduleAI();return;
+          game._aiSteps++;
+          const pick=chooseAICritter(critters,p);E.recruit(game,pi,pick.c.uid,pick.ms[0].uid);aiNote(`AI recruits ${pick.c.name}.`);render();scheduleAI();return;
         }
         const builds=E.legalBuilds(game,pi).filter(b=>Object.keys(b.cost||{}).length);
         if(builds.length&&game._aiSteps<aiProfile().buildUntil){
-          builds.sort((a,b)=>aiBlueprintScore(game,p,b)-aiBlueprintScore(game,p,a));game._aiSteps++;
-          const pick=builds[0];E.build(game,pi,pick.id);aiNote(`AI builds ${pick.name}.`);render();scheduleAI();return;
+          game._aiSteps++;
+          const pick=chooseAIBuild(game,p,builds);E.build(game,pi,pick.id);aiNote(`AI builds ${pick.name}.`);render();scheduleAI();return;
         }
       }
       aiDeclareAttacks();return;
@@ -84,6 +86,7 @@
   }
 
   function chooseAIProduction(p,opts){
+    if(aiProfile().skill==='beginner')return opts[0];
     const prov=opts.find(b=>b.harvest?.provision||b.firstYield?.provision);
     if(prov&&!E.activeBuildings(p).some(b=>b.production&&(b.harvest?.provision||b.firstYield?.provision)))return prov;
     return [...opts].sort((a,b)=>{
@@ -96,15 +99,49 @@
     if(b.upgradeFrom)s+=2;return s;
   }
   function cardValue(c){return c.type==='Critter'?(c.might||0)*2+(c.grit||0):(c.subtype==='Tool'?3:1);}
+  function chooseAICritter(options,p){
+    const skill=aiProfile().skill;
+    if(skill==='beginner')return [...options].sort((a,b)=>cardValue(a.c)-cardValue(b.c))[0];
+    if(skill==='standard')return [...options].sort((a,b)=>(b.c.might+b.c.grit)-(a.c.might+a.c.grit))[0];
+    return [...options].sort((a,b)=>{
+      const score=x=>cardValue(x.c)+(x.c.advanced?4:0)+(x.ms[0]?.upgradeFrom?2:0);
+      return score(b)-score(a);
+    })[0];
+  }
+  function chooseAIBuild(g,p,builds){
+    const skill=aiProfile().skill;
+    if(skill==='beginner')return [...builds].sort((a,b)=>aiBlueprintScore(g,p,a)-aiBlueprintScore(g,p,b))[0];
+    if(skill==='standard')return [...builds].sort((a,b)=>aiBlueprintScore(g,p,b)-aiBlueprintScore(g,p,a))[0];
+    const score=b=>{
+      let s=aiBlueprintScore(g,p,b);
+      if(b.upgradeFrom)s+=4;
+      if(b.muster&&p.hand.some(c=>c.type==='Critter'&&(c.musterClasses||[]).includes(b.musterClass)))s+=6;
+      if(b.production&&Object.values(p.resources).reduce((n,v)=>n+v,0)<4)s+=4;
+      return s;
+    };
+    return [...builds].sort((a,b)=>score(b)-score(a))[0];
+  }
+  function chooseAITarget(r,o){
+    const buildings=E.activeBuildings(o);
+    if(o.exposed||!buildings.length)return 'hearthseed';
+    const skill=aiProfile().skill;
+    if(skill==='beginner')return buildings[0].uid;
+    const might=E.residentMight(r,{kind:'building'});
+    if(skill==='standard'){
+      const weak=[...buildings].sort((a,b)=>(a.durability-a.damage)-(b.durability-b.damage));
+      return o.hearthseed<=E.residentMight(r,{kind:'hearthseed'})?'hearthseed':weak[0].uid;
+    }
+    const scored=[...buildings].map(b=>({b,score:(b.production?6:0)+(b.muster?5:0)+(b.prosperity||0)*2+((b.durability-b.damage)<=might?12:0)})).sort((a,b)=>b.score-a.score);
+    if(o.hearthseed<=E.residentMight(r,{kind:'hearthseed'}))return 'hearthseed';
+    return scored[0].b.uid;
+  }
 
   function aiDeclareAttacks(){
     const pi=game.aiIndex,p=game.players[pi],o=game.players[1-pi];
     const ready=p.residents.filter(r=>E.canAttack(game,pi,r));
     if(!ready.length){E.requestEndTurn(game,pi);render();scheduleAI();return;}
     ready.slice(0,aiProfile().attackers).forEach(r=>{
-      const buildings=E.activeBuildings(o).sort((a,b)=>(a.durability-a.damage)-(b.durability-b.damage));
-      const target=o.exposed||o.hearthseed<=E.residentMight(r,{kind:'hearthseed'})?'hearthseed':(buildings[0]?.uid??'hearthseed');
-      E.declareAttack(game,pi,r.uid,target);
+      E.declareAttack(game,pi,r.uid,chooseAITarget(r,o));
     });
     if(game.combat.attacks.length){E.commitAttacks(game,pi);aiNote(`AI declares ${game.combat.attacks.length} attacker${game.combat.attacks.length===1?'':'s'}.`);}else E.requestEndTurn(game,pi);
     render();
@@ -118,13 +155,18 @@
       if(a.blockerUid)return;
       const legal=d.residents.filter(r=>E.canBlock(game,di,r,a));
       if(!legal.length)return;
-      legal.sort((x,y)=>E.residentGrit(game,d,y,true)-E.residentGrit(game,d,x,true));
+      if(aiProfile().skill==='standard')legal.sort((x,y)=>E.residentGrit(game,d,y,true)-E.residentGrit(game,d,x,true));
+      else if(aiProfile().skill==='hard'){
+        const atk=game.players[game.active].residents.find(r=>r.uid===a.attackerUid);
+        const score=r=>(E.residentGrit(game,d,r,true)>(atk?.might||0)?10:0)+((r.might||0)>=(atk?.grit||99)?8:0)+E.residentGrit(game,d,r,true);
+        legal.sort((x,y)=>score(y)-score(x));
+      }
       E.assignBlock(game,di,legal[0].uid,i);
     });
   }
 
   function setupScreen(){
-    return `<main class="setupShell"><section class="setupCard"><div class="setupSeal">🔥</div><div class="eyebrow">DIGITAL TABLETOP · RULES v0.6.2</div><h1>Hearth & Hollow</h1><p class="lead">Build a tiny woodland village, gather your Critters, and keep the last warm Hearthseed glowing through winter.</p><h2 class="setupPrompt">Choose how your village plays</h2><div class="factionGrid"><button class="factionChoice porch" onclick="UI.newMatch('ai','AS',document.getElementById('aiDifficulty').value)"><span class="bigIcon">🥜💦</span><span><b>Porchlight</b><small>Hazel Underleaf · Acorn / Sap</small><em class="deckArchetype">⚡ Fast, scrappy pressure</em><span class="deckExplain">Attack Buildings early, disrupt production, and keep the tempo moving.</span></span></button><button class="factionChoice stone" onclick="UI.newMatch('ai','RP',document.getElementById('aiDifficulty').value)"><span class="bigIcon">🫚🪨</span><span><b>Stonecap</b><small>Mosswick Grubroot · Root / Pebble</small><em class="deckArchetype">🛡️ Sturdy, defensive value</em><span class="deckExplain">Block, repair, recycle Critters, and grow into a strong late village.</span></span></button></div><div class="aiDifficultyBox"><label for="aiDifficulty"><b>AI Difficulty</b><select id="aiDifficulty"><option value="beginner" selected>Beginner — slow & gentle</option><option value="standard">Standard — normal pace</option><option value="hard">Hard — faster & more active</option></select></label><small>Beginner pauses between actions and takes fewer actions/attackers so you can follow what the opponent is doing.</small></div><button class="textButton" onclick="UI.newMatch('hotseat','AS')">Hot-seat two player</button><div class="ruleCallout"><b>Prosperity:</b> reaching 15 is not immediate victory. Hold 15+ active Prosperity until the start of your Dawn.</div></section></main>`;
+    return `<main class="setupShell"><section class="setupCard"><div class="setupSeal">🔥</div><div class="eyebrow">DIGITAL TABLETOP · RULES v0.6.2</div><h1>Hearth & Hollow</h1><p class="lead">Build a tiny woodland village, gather your Critters, and keep the last warm Hearthseed glowing through winter.</p><h2 class="setupPrompt">Choose your Hearthkeeper</h2><div class="factionGrid"><button class="factionChoice porch" onclick="UI.newMatch('ai','AS',document.getElementById('aiDifficulty').value,document.getElementById('aiPace').value)"><span class="bigIcon">🥜💦</span><span><b>Hazel Underleaf</b><small>Porchlight Tradition · Acorn / Sap</small><em class="deckArchetype">⚡ Fast, scrappy pressure</em><span class="deckExplain">Attack Buildings early, disrupt production, and keep the tempo moving.</span></span></button><button class="factionChoice stone" onclick="UI.newMatch('ai','RP',document.getElementById('aiDifficulty').value,document.getElementById('aiPace').value)"><span class="bigIcon">🫚🪨</span><span><b>Mosswick Grubroot</b><small>Stonecap Tradition · Root / Pebble</small><em class="deckArchetype">🛡️ Sturdy, recursive defense</em><span class="deckExplain">Block, repair, recycle Critters, and grow into a strong late village.</span></span></button></div><div class="aiDifficultyBox"><label for="aiDifficulty"><b>AI Difficulty</b><select id="aiDifficulty"><option value="beginner" selected>Beginner — forgiving priorities</option><option value="standard">Standard — sensible priorities</option><option value="hard">Hard — sharp priorities</option></select></label><small>Difficulty changes what the AI values and targets, not how many legal actions it is allowed to take.</small><label for="aiPace"><b>AI Pace</b><select id="aiPace"><option value="slow" selected>Deliberate — easy to follow</option><option value="normal">Normal</option></select></label><small>Pace is separate from difficulty. Deliberate pauses between visible actions so you can read the opponent turn.</small></div><button class="textButton" onclick="UI.newMatch('hotseat','AS')">Hot-seat two player</button><div class="ruleCallout"><b>Prosperity:</b> reaching 15 is not immediate victory. Hold 15+ active Prosperity until the start of your Dawn.</div></section></main>`;
   }
 
   function phaseStrip(){
@@ -147,7 +189,7 @@
     const active=pi===game.active,pros=E.prosperity(p);
     const exposed=p.exposed?'<span class="statusDanger">EXPOSED</span>':p.exposurePendingOwnTurn!==null?'<span class="statusWarn">Response turn</span>':'';
     const pending=pros>=15&&!game.winner?`<span class="dawnHold">✨ ${pros} — hold until Dawn</span>`:'';
-    return `<section class="playerBanner ${top?'opponentBanner':'homeBanner'} ${active?'turnActive':''}"><div class="identity"><span class="sideLabel">${top?'OPPONENT':'YOU'}${active?' · ACTIVE':''}</span><b>${esc(p.name)}</b><small>${esc(faction(p).short)} · ${esc(faction(p).hearthkeeper)}</small></div><div class="bannerResources">${resources(p)}</div><div class="bannerStats"><div class="hearthMedallion"><span>🔥</span><b>${p.hearthseed}</b><small>HP</small>${exposed}</div>${prosperityBadge(p)}${pending}</div></section>`;
+    return `<section class="playerBanner ${top?'opponentBanner':'homeBanner'} ${active?'turnActive':''}"><div class="identity"><span class="sideLabel">${top?'OPPONENT':'YOU'}${active?' · ACTIVE':''}</span><b>${esc(faction(p).hearthkeeper)}</b><button class="keeperChip" onclick="UI.drawer('hearthkeeper:${pi}')">🔥 View Hearthkeeper card</button><small>${esc(faction(p).short)}</small></div><div class="bannerResources">${resources(p)}</div><div class="bannerStats"><div class="hearthMedallion"><span>🔥</span><b>${p.hearthseed}</b><small>HP</small>${exposed}</div>${prosperityBadge(p)}${pending}</div></section>`;
   }
 
   function laneTitle(icon,title,note){return `<div class="laneTitle"><span>${icon}</span><b>${title}</b><small>${note}</small></div>`;}
@@ -237,13 +279,19 @@
     return `<div class="drawerHeader"><div><span class="eyebrow">QUICK REFERENCE</span><h2>v0.6.2 rules</h2></div><button class="closeButton" onclick="UI.drawer(null)">×</button></div><div class="ruleCards"><div><b>✨ Prosperity</b><p>15+ wins only at the start of your Dawn.</p></div><div><b>📦 Provision</b><p>Each Provision cost may use a Provision or any one core resource.</p></div><div><b>🏠 Musters</b><p>Every Critter uses exactly 1 Housing. Advanced Critters need an upgraded matching Muster.</p></div><div><b>🧱 Damage</b><p>Building damage stays. Surviving Critter damage clears at Rest.</p></div><div><b>⚔ Combat</b><p>Declare the whole attack before blockers. Same-target unblocked damage combines.</p></div></div>`;
   }
 
+  function hearthkeeperPanel(pi){
+    const p=game.players[pi],f=faction(p),h=f.hearthkeeperCard;
+    return `<div class="drawerHeader"><div><span class="eyebrow">HEARTHKEEPER REFERENCE</span><h2>${esc(h.name)}</h2></div><button class="closeButton" onclick="UI.drawer(null)">×</button></div><article class="hearthkeeperReferenceCard"><div class="hearthkeeperPortrait"><span>🔥</span><small>ART PLACEHOLDER</small></div><div><span class="eyebrow">${esc(h.subtitle)}</span><h3>${esc(h.name)}</h3><p class="hearthkeeperFlavor">${esc(h.text)}</p><div class="referenceOnly">${esc(h.reference)}</div><small>${esc(f.tradition)} Tradition · ${esc(f.short.split('·').pop().trim())}</small></div></article>`;
+  }
+
   function logPanel(){
     return `<div class="drawerHeader"><div><span class="eyebrow">TABLE HISTORY</span><h2>Game log</h2></div><button class="closeButton" onclick="UI.drawer(null)">×</button></div><div class="log">${game.log.map(x=>`<div>${esc(x)}</div>`).join('')}</div>`;
   }
 
   function drawerPanel(){
     if(!drawer)return '';
-    const body=drawer==='blueprints'?blueprintPanel():drawer==='rules'?rulesPanel():logPanel();
+    const keeperMatch=String(drawer).match(/^hearthkeeper:(\d)$/);
+    const body=keeperMatch?hearthkeeperPanel(+keeperMatch[1]):drawer==='blueprints'?blueprintPanel():drawer==='rules'?rulesPanel():logPanel();
     return `<div class="drawerBackdrop" onclick="UI.drawer(null)"></div><aside class="gameDrawer">${body}</aside>`;
   }
 
@@ -301,7 +349,7 @@
     if(!game){app.innerHTML=setupScreen();return;}
     const top=game.mode==='ai'?game.aiIndex:1-game.active,bottom=game.mode==='ai'?humanIndex():game.active;
     const enemy=game.players[top],home=game.players[bottom];
-    app.innerHTML=`<div class="client"><header class="tableTopbar"><div class="brandBlock"><div class="brand">Hearth & Hollow</div><span>Client v0.7.5 · Rules v0.6.2</span></div>${phaseStrip()}<div class="turnBlock"><small>Round ${E.currentRound(game)} · Turn ${game.turnNo}</small><b>${esc(game.players[game.active].name)} · ${game.phase}</b></div><div class="topControls">${utilityButtons()}${controls()}<button class="resetButton" onclick="UI.reset()">↺</button></div></header>${toast?`<div class="toast">${esc(toast)}</div>`:''}<main class="tableSurface">${playerBanner(enemy,top,true)}${villageZone(enemy,top,true)}${fieldZone(enemy,top,true)}<div class="trialDivider"><i></i><span>❄ FROST TRIAL ❄</span><i></i></div>${combatPanel()}${fieldZone(home,bottom,false)}${villageZone(home,bottom,false)}${playerBanner(home,bottom,false)}</main>${handPanel()}${drawerPanel()}${harvestOverlay()}${winnerOverlay()}</div>`;
+    app.innerHTML=`<div class="client"><header class="tableTopbar"><div class="brandBlock"><div class="brand">Hearth & Hollow</div><span>Client v0.7.6 · Rules v0.6.2</span></div>${phaseStrip()}<div class="turnBlock"><small>Round ${E.currentRound(game)} · Turn ${game.turnNo}</small><b>${esc(game.players[game.active].name)} · ${game.phase}</b></div><div class="topControls">${utilityButtons()}${controls()}<button class="resetButton" onclick="UI.reset()">↺</button></div></header>${toast?`<div class="toast">${esc(toast)}</div>`:''}<main class="tableSurface">${playerBanner(enemy,top,true)}${villageZone(enemy,top,true)}${fieldZone(enemy,top,true)}<div class="trialDivider"><i></i><span>❄ FROST TRIAL ❄</span><i></i></div>${combatPanel()}${fieldZone(home,bottom,false)}${villageZone(home,bottom,false)}${playerBanner(home,bottom,false)}</main>${handPanel()}${drawerPanel()}${harvestOverlay()}${winnerOverlay()}</div>`;
   }
 
   window.UI={
@@ -365,7 +413,7 @@
 
   function syncVersion(){
     const el=document.querySelector('.brandBlock > span');
-    if(el&&el.textContent!=='Client v0.7.5 · Rules v0.6.2')el.textContent='Client v0.7.5 · Rules v0.6.2';
+    if(el&&el.textContent!=='Client v0.7.6 · Rules v0.6.2')el.textContent='Client v0.7.6 · Rules v0.6.2';
   }
 
   function flushAppObservers(){
@@ -398,7 +446,7 @@
     fallback.observe(app,{childList:true,subtree:false});
   }
 
-  window.HNH_UI_COORDINATOR={flush:queueFlush,version:'0.7.4'};
+  window.HNH_UI_COORDINATOR={flush:queueFlush,version:'0.7.6'};
   syncVersion();
 })();
 
@@ -565,7 +613,7 @@
     fieldRail.classList.toggle('drawLow', typeof lastFieldCount === 'number' && lastFieldCount <= 8);
 
     const brandVersion = document.querySelector('.brandBlock > span');
-    if (brandVersion) brandVersion.textContent = 'Client v0.7.5 · Rules v0.6.2';
+    if (brandVersion) brandVersion.textContent = 'Client v0.7.6 · Rules v0.6.2';
   }
 
   function syncEnhancements() {
@@ -915,7 +963,7 @@
     positionRails();
     syncTutorial();
     const brandVersion=document.querySelector('.brandBlock > span');
-    if(brandVersion)brandVersion.textContent='Client v0.7.5 · Rules v0.6.2';
+    if(brandVersion)brandVersion.textContent='Client v0.7.6 · Rules v0.6.2';
   }
 
   installDrag(fieldRail);
@@ -1013,7 +1061,7 @@
     ensureSetupLinks();
     ensureGameLinks();
     const brandVersion=document.querySelector('.brandBlock > span');
-    if(brandVersion)brandVersion.textContent='Client v0.7.5 · Rules v0.6.2';
+    if(brandVersion)brandVersion.textContent='Client v0.7.6 · Rules v0.6.2';
   }
 
   const app=document.getElementById('app');
@@ -1052,7 +1100,7 @@
 
   function syncVersion(){
     const el=document.querySelector('.brandBlock > span');
-    if(el)el.textContent='Client v0.7.5 · Rules v0.6.2';
+    if(el)el.textContent='Client v0.7.6 · Rules v0.6.2';
   }
 
   function sync(){
