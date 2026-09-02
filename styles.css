@@ -274,3 +274,8 @@ body:has(.cardInspector.pinned) .sideDeckRail{
 /* ===== blocking reliability ===== */
 .blockDraggable{touch-action:none;user-select:none;cursor:grab}.blockDraggable:active{cursor:grabbing}
 .gameCard.critter[data-block-attack-index].directDropTarget{outline-color:#58a9df!important;box-shadow:0 0 0 5px rgba(88,169,223,.14),0 0 26px rgba(88,169,223,.34)!important}
+
+
+/* ===== attack drafting ===== */
+.cancelAttackDraft{position:absolute;z-index:8;top:5px;right:5px;width:24px;height:24px;padding:0;border-radius:999px;background:rgba(45,42,34,.88);border:1px solid rgba(255,245,220,.75);color:#fff4dc;font:900 17px/20px ui-sans-serif,system-ui;box-shadow:0 2px 8px rgba(25,22,18,.28)}
+.cancelAttackDraft:hover{background:#8d5147;transform:scale(1.06)!important;filter:none!important}

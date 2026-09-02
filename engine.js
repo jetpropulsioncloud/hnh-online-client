@@ -314,10 +314,22 @@
     return {ok:true};
   }
 
+  function cancelAttack(g,pi,residentUid){
+    if(pi!==g.active||g.phase!=='Attack'||g.combat.committed)return {ok:false,reason:'Attackers can only be changed before the attack is declared.'};
+    const p=g.players[pi],index=g.combat.attacks.findIndex(a=>a.attackerUid===residentUid);
+    if(index<0)return {ok:false,reason:'That Critter is not in the current attack.'};
+    g.combat.attacks.splice(index,1);
+    const r=p.residents.find(x=>x.uid===residentUid);
+    if(r){r.attacking=false;r.tired=false;}
+    p.attackedThisStep=p.attackedThisStep.filter(uid=>uid!==residentUid);
+    log(g,`${r?.name||'A Critter'} is withdrawn from the attack.`);
+    return {ok:true};
+  }
+
   function commitAttacks(g,pi){
     if(pi!==g.active||g.phase!=='Attack'||!g.combat.attacks.length)return {ok:false,reason:'Declare at least one attacker first.'};
     g.combat.committed=true;g.phase='Block';
-    log(g,`${g.players[pi].name} commits ${g.combat.attacks.length} attacker${g.combat.attacks.length===1?'':'s'}. Defender may block.`);
+    log(g,`${g.players[pi].name} declares ${g.combat.attacks.length} attacker${g.combat.attacks.length===1?'':'s'}. Defender may block.`);
     return {ok:true};
   }
 
@@ -590,7 +602,7 @@
 
   window.HNH_ENGINE={
     CORE,PHASES,createGame,startGame,mulligan,draw,chooseHarvest,build,buildReason,recruit,recruitReason,playTool,useWorkshop,
-    declareAttack,commitAttacks,assignBlock,canBlock,playReaction,resolveCombat,requestEndTurn,discard,
+    declareAttack,cancelAttack,commitAttacks,assignBlock,canBlock,playReaction,resolveCombat,requestEndTurn,discard,
     prosperity,activeBuildings,activeMusters,controlledMusters,housingUsed,residentReady,residentGrit,residentMight,canAttack,
     canAfford,paymentPlan,legalBuilds,legalMusters,legalAttackTargets,currentRound,status,isRuined,
     _test:{beginDawn,beginHarvest,beginBuild,finishTurn,applyBuildingDamage,applyHearthDamage,markNoBuildingsResponse,resolveRehousing}

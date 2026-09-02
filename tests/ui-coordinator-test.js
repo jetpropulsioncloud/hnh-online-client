@@ -70,3 +70,10 @@ assert(client.includes('data-block-attack-index'),'explicit block attack index m
 assert(client.includes('setPointerCapture'),'pointer capture missing for direct manipulation');
 assert(styles.includes('.blockDraggable{touch-action:none'),'block drag touch-action guard missing');
 console.log('✓ human blocking uses explicit attack targets and stable pointer capture');
+
+assert(client.includes('cancelAttackDraft'),'selected attacker X control missing');
+assert(client.includes('>Declare Attack</button>'),'single Declare Attack action missing');
+assert(!client.includes('Commit attack'),'legacy Commit attack copy should be removed');
+assert(client.includes("cancelAttack:uid=>doAction(()=>E.cancelAttack"),'cancel attack UI action missing');
+assert(styles.includes('.cancelAttackDraft'),'selected attacker X styling missing');
+console.log('✓ attack drafting uses one Declare Attack button with removable selections');
