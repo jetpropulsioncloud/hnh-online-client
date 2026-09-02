@@ -77,3 +77,9 @@ assert(!client.includes('Commit attack'),'legacy Commit attack copy should be re
 assert(client.includes("cancelAttack:uid=>doAction(()=>E.cancelAttack"),'cancel attack UI action missing');
 assert(styles.includes('.cancelAttackDraft'),'selected attacker X styling missing');
 console.log('✓ attack drafting uses one Declare Attack button with removable selections');
+
+assert(client.includes('handResourceStrip')&&client.includes('${resources(owner)}'),'hand HUD resource strip missing');
+assert(styles.includes('.handDock{position:fixed'),'hand dock should stay attached to the viewport');
+assert(styles.includes('.handResourceStrip'),'hand resource HUD styling missing');
+assert(client.includes("${top?resources(p):''}"),'home banner should not duplicate the hand resource HUD');
+console.log('✓ resources stay visible with the fixed hand HUD');

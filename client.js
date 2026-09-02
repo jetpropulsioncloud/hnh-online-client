@@ -196,7 +196,7 @@
     const active=pi===game.active,pros=E.prosperity(p);
     const exposed=p.exposed?'<span class="statusDanger">EXPOSED</span>':p.exposurePendingOwnTurn!==null?'<span class="statusWarn">Response turn</span>':'';
     const pending=pros>=15&&!game.winner?`<span class="dawnHold">✨ ${pros} — hold until Dawn</span>`:'';
-    return `<section class="playerBanner ${top?'opponentBanner':'homeBanner'} ${active?'turnActive':''}"><div class="identity"><span class="sideLabel">${top?'OPPONENT':'YOU'}${active?' · ACTIVE':''}</span><b>${esc(faction(p).hearthkeeper)}</b><button class="keeperChip" onclick="UI.drawer('hearthkeeper:${pi}')">🔥 View Hearthkeeper card</button><small>${esc(faction(p).short)}</small></div><div class="bannerResources">${resources(p)}</div><div class="bannerStats"><div class="hearthMedallion" data-hearthseed-player="${pi}"><span>🔥</span><b>${p.hearthseed}</b><small>HP</small>${exposed}</div>${prosperityBadge(p)}${pending}</div></section>`;
+    return `<section class="playerBanner ${top?'opponentBanner':'homeBanner'} ${active?'turnActive':''}"><div class="identity"><span class="sideLabel">${top?'OPPONENT':'YOU'}${active?' · ACTIVE':''}</span><b>${esc(faction(p).hearthkeeper)}</b><button class="keeperChip" onclick="UI.drawer('hearthkeeper:${pi}')">🔥 View Hearthkeeper card</button><small>${esc(faction(p).short)}</small></div><div class="bannerResources">${top?resources(p):''}</div><div class="bannerStats"><div class="hearthMedallion" data-hearthseed-player="${pi}"><span>🔥</span><b>${p.hearthseed}</b><small>HP</small>${exposed}</div>${prosperityBadge(p)}${pending}</div></section>`;
   }
 
   function laneTitle(icon,title,note){return `<div class="laneTitle"><span>${icon}</span><b>${title}</b><small>${note}</small></div>`;}
@@ -258,9 +258,9 @@
 
   function handPanel(){
     const pi=humanIndex(),p=game.players[pi];
-    if(game.mode==='ai'&&game.active===game.aiIndex)return `<section class="handDock">${tableFidgets()}<div class="handHeader"><div><span class="eyebrow">YOUR HAND</span><b>${p.hand.length} cards</b></div><span class="locked">Opponent turn</span></div><div class="handRow">${p.hand.map(c=>handCard(p,pi,c,false)).join('')}</div></section>`;
+    if(game.mode==='ai'&&game.active===game.aiIndex)return `<section class="handDock">${tableFidgets()}<div class="handHeader"><div><span class="eyebrow">YOUR HAND</span><b>${p.hand.length} cards</b></div><div class="handResourceStrip">${resources(p)}</div><span class="locked">Opponent turn</span></div><div class="handRow">${p.hand.map(c=>handCard(p,pi,c,false)).join('')}</div></section>`;
     const owner=game.mode==='ai'?p:game.players[game.active],ownerPi=game.mode==='ai'?pi:game.active;
-    return `<section class="handDock">${tableFidgets()}<div class="handHeader"><div><span class="eyebrow">${game.mode==='ai'?'YOUR HAND':'ACTIVE HAND'}</span><b>${owner.hand.length} cards</b></div><div class="deckCounters"><span>🎴 ${owner.fieldDeck.length}</span><span>🍂 ${owner.compost.length}</span></div></div>${game.phase==='Discard'?`<div class="discardNotice">Rest: discard down to 7 · choose ${owner.hand.length-7} more.</div>`:''}<div class="handRow">${owner.hand.map(c=>handCard(owner,ownerPi,c,true)).join('')}</div></section>`;
+    return `<section class="handDock">${tableFidgets()}<div class="handHeader"><div><span class="eyebrow">${game.mode==='ai'?'YOUR HAND':'ACTIVE HAND'}</span><b>${owner.hand.length} cards</b></div><div class="handResourceStrip">${resources(owner)}</div><div class="deckCounters"><span>🎴 ${owner.fieldDeck.length}</span><span>🍂 ${owner.compost.length}</span></div></div>${game.phase==='Discard'?`<div class="discardNotice">Rest: discard down to 7 · choose ${owner.hand.length-7} more.</div>`:''}<div class="handRow">${owner.hand.map(c=>handCard(owner,ownerPi,c,true)).join('')}</div></section>`;
   }
 
   function handArt(c){
