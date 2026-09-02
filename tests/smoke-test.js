@@ -61,12 +61,14 @@ assert(decks.AS.field.find(c=>c.id==='bramble_climbing_kit').text.includes('may 
 assert(decks.RP.field.find(c=>c.id==='stone_toad_bruiser').text.includes('when this defeats a blocker'),'Crushing Blow reminder text missing');
 console.log('✓ current printed ability wording checkpoints');
 
-// Static runtime wiring smoke. The browser should load only the four consolidated runtime assets.
+// Static runtime wiring smoke. Core runtime remains consolidated; v0.8.1 adds a presentation-only card UX layer.
 const html = fs.readFileSync('index.html', 'utf8');
 assert(html.includes('styles.css?v=080'), 'consolidated styles.css is not loaded');
+assert(html.includes('card-ux.css?v=081'), 'card UX stylesheet is not loaded');
 assert(html.includes('data.js?v=080'), 'consolidated data.js is not loaded');
 assert(html.includes('engine.js?v=080'), 'consolidated engine.js is not loaded');
 assert(html.includes('client.js?v=080'), 'consolidated client.js is not loaded');
+assert(html.includes('card-ux.js?v=081'), 'card UX behavior layer is not loaded');
 assert(!html.includes('client-v062.js') && !html.includes('engine-v062.js'), 'legacy split runtime is still referenced');
-assert(html.includes('Tabletop Client v0.8.0'), 'client presentation version mismatch');
+assert(html.includes('Tabletop Client v0.8.1'), 'client presentation version mismatch');
 console.log('✓ consolidated client/runtime wiring smoke');
