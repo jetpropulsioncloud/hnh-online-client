@@ -124,3 +124,9 @@ assert(styles.includes('one-screen hand visibility correction'),'hand visibility
 assert(styles.includes('body.matchViewport .handRow{flex:1 1 auto'),'hand row should consume available dock height');
 assert(styles.includes('height:min(190px,calc(100% - 2px))'),'hand cards should fit inside the visible dock instead of being clipped');
 console.log('✓ one-screen hand cards stay fully visible inside the viewport');
+
+assert(client.includes('handCard(p,pi,c,false,i,p.hand.length)')&&client.includes('--hand-offset'),'hand fan metadata missing');
+assert(styles.includes('Hearthstone-inspired hand fan')&&styles.includes('rotate(calc(var(--hand-offset) * 1.45deg))'),'hand fan arc styling missing');
+assert(styles.includes('translateY(-34px) rotate(0deg) scale(1.12)'),'hovered hand card should rise and enlarge');
+assert(styles.includes('justify-content:center;align-items:flex-end'),'hand should be centered at the bottom of the tabletop');
+console.log('✓ Hearthstone-inspired overlapping hand fan and hover prominence');
