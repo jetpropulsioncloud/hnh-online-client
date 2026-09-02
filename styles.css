@@ -406,3 +406,23 @@ body.matchViewport .winnerOverlay,body.matchViewport .harvestOverlay{position:fi
   body.matchViewport .tableSurface .gameCard .artWindow{display:none}
   body.matchViewport .tableSurface{grid-template-rows:auto minmax(38px,1fr) minmax(36px,.9fr) auto minmax(36px,.9fr) minmax(38px,1fr) auto}
 }
+
+
+/* ===== one-screen hand visibility correction ===== */
+@media(max-height:850px){
+  body.matchViewport .handDock{max-height:min(33dvh,252px);display:flex;flex-direction:column;overflow:hidden}
+  body.matchViewport .handHeader{flex:0 0 auto}
+  body.matchViewport .handFidgets{flex:0 0 auto;min-height:16px;margin-bottom:0}
+  body.matchViewport .handRow{flex:1 1 auto;min-height:0;align-items:flex-start;overflow-x:auto;overflow-y:hidden;padding-bottom:4px}
+  body.matchViewport .handCard{height:min(190px,calc(100% - 2px));min-height:0;flex-basis:154px}
+  body.matchViewport .handCard .artWindow{height:44px;min-height:36px}
+}
+@media(max-height:760px){
+  body.matchViewport .handDock{max-height:min(34dvh,238px)}
+  body.matchViewport .handCard{height:min(180px,calc(100% - 2px));flex-basis:150px}
+  body.matchViewport .handCard .artWindow{height:40px}
+}
+@media(max-height:700px){
+  body.matchViewport .handDock{max-height:min(35dvh,218px)}
+  body.matchViewport .handCard{height:min(164px,calc(100% - 2px));flex-basis:142px}
+}
