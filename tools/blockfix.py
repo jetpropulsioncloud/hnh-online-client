@@ -24,22 +24,12 @@ for old,new in repls:
     assert old in s, f'missing patch hook: {old[:70]}'
     s=s.replace(old,new,1)
 
-s=s.replace("Client v0.8.0 · Rules v0.6.2","Client v0.8.1 · Rules v0.6.2")
-s=s.replace("version:'0.8.0'","version:'0.8.1'")
 p.write_text(s)
 
 css=Path('styles.css')
 c=css.read_text()
-c += "\n/* ===== v0.8.1 blocking reliability ===== */\n.blockDraggable{touch-action:none;user-select:none;cursor:grab}.blockDraggable:active{cursor:grabbing}\n.gameCard.critter[data-block-attack-index].directDropTarget{outline-color:#58a9df!important;box-shadow:0 0 0 5px rgba(88,169,223,.14),0 0 26px rgba(88,169,223,.34)!important}\n"
+c += "\n/* ===== blocking reliability ===== */\n.blockDraggable{touch-action:none;user-select:none;cursor:grab}.blockDraggable:active{cursor:grabbing}\n.gameCard.critter[data-block-attack-index].directDropTarget{outline-color:#58a9df!important;box-shadow:0 0 0 5px rgba(88,169,223,.14),0 0 26px rgba(88,169,223,.34)!important}\n"
 css.write_text(c)
-
-idx=Path('index.html')
-i=idx.read_text().replace('v0.8.0','v0.8.1').replace('v=080','v=081')
-idx.write_text(i)
-
-for tp in Path('tests').glob('*.js'):
-    t=tp.read_text().replace('v0.8.0','v0.8.1').replace('v=080','v=081')
-    tp.write_text(t)
 
 tp=Path('tests/ui-coordinator-test.js')
 t=tp.read_text()+"\nassert(client.includes('data-block-attack-index'),'explicit block attack index missing');\nassert(client.includes('setPointerCapture'),'pointer capture missing for direct manipulation');\nassert(css.includes('.blockDraggable{touch-action:none'),'block drag touch-action guard missing');\nconsole.log('✓ human blocking uses explicit attack targets and stable pointer capture');\n"
