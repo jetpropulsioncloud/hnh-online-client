@@ -65,3 +65,8 @@ assert(client.includes('blockDraggable'),'direct block dragging missing');
 assert(client.includes('musterIdentity')&&client.includes('musterRulesText'),'Muster identity cleanup missing');
 assert(client.includes("version:'0.8.0'"),'v0.8.0 coordinator version missing');
 console.log('✓ persistent attack/block arrows and clearer Muster identity');
+
+assert(client.includes('data-block-attack-index'),'explicit block attack index missing');
+assert(client.includes('setPointerCapture'),'pointer capture missing for direct manipulation');
+assert(styles.includes('.blockDraggable{touch-action:none'),'block drag touch-action guard missing');
+console.log('✓ human blocking uses explicit attack targets and stable pointer capture');

@@ -270,3 +270,7 @@ body:has(.cardInspector.pinned) .sideDeckRail{
 .combatLinkOverlay{position:fixed;inset:0;width:100vw;height:100vh;z-index:48;pointer-events:none;overflow:visible}.combatAttackPath,.combatBlockPath{fill:none;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 2px 2px rgba(0,0,0,.28))}.combatAttackPath{stroke:#d9783c;stroke-width:5;opacity:.9}.combatBlockPath{stroke:#58a9df;stroke-width:5;opacity:.95}.combatAttackHead{fill:#d9783c}.combatBlockHead{fill:#58a9df}
 .dragAttackArrow,.dragBlockArrow{position:fixed;inset:0;width:100vw;height:100vh;z-index:90;pointer-events:none;overflow:visible}.dragAttackArrow line,.dragBlockArrow line{stroke-width:6;stroke-linecap:round;opacity:.78}.dragAttackArrow line{stroke:#d9783c}.dragAttackArrow path{fill:#d9783c}.dragBlockArrow line{stroke:#58a9df}.dragBlockArrow path{fill:#58a9df}.dragAttackArrow.valid line,.dragBlockArrow.valid line{stroke-width:8;opacity:1}
 .blockDraggable{cursor:crosshair;box-shadow:0 0 0 2px rgba(88,169,223,.26)}.blockHint{background:rgba(88,169,223,.16)!important;color:#245d7e!important}.compactCombat .reactionTray{margin-top:7px}
+
+/* ===== blocking reliability ===== */
+.blockDraggable{touch-action:none;user-select:none;cursor:grab}.blockDraggable:active{cursor:grabbing}
+.gameCard.critter[data-block-attack-index].directDropTarget{outline-color:#58a9df!important;box-shadow:0 0 0 5px rgba(88,169,223,.14),0 0 26px rgba(88,169,223,.34)!important}
