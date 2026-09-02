@@ -279,3 +279,15 @@ body:has(.cardInspector.pinned) .sideDeckRail{
 /* ===== attack drafting ===== */
 .cancelAttackDraft{position:absolute;z-index:8;top:5px;right:5px;width:24px;height:24px;padding:0;border-radius:999px;background:rgba(45,42,34,.88);border:1px solid rgba(255,245,220,.75);color:#fff4dc;font:900 17px/20px ui-sans-serif,system-ui;box-shadow:0 2px 8px rgba(25,22,18,.28)}
 .cancelAttackDraft:hover{background:#8d5147;transform:scale(1.06)!important;filter:none!important}
+
+
+/* ===== persistent hand + resource HUD ===== */
+.client{padding-bottom:258px}
+.handDock{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:min(1552px,calc(100vw - 28px));margin:0;z-index:52;box-shadow:0 -10px 26px rgba(18,18,14,.28)}
+.handHeader{align-items:center;gap:10px}
+.handResourceStrip{margin-left:auto;display:flex;align-items:center}
+.handResourceStrip .resourceRow{gap:5px;flex-wrap:nowrap}
+.handResourceStrip .resourceChip{min-width:42px;padding:4px 7px;background:rgba(255,246,223,.96)}
+.handResourceStrip .resourceChip span{font-size:14px}.handResourceStrip .resourceChip b{font-size:12px}
+.homeBanner .bannerResources:empty{display:none}
+@media (max-height:760px){.client{padding-bottom:225px}.handCard{height:192px;flex-basis:154px}.handDock{padding-top:7px}.handRow{padding-bottom:8px}}
