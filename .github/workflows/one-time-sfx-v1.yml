@@ -15,7 +15,9 @@ jobs:
         with:
           node-version: 22
       - name: Patch tactile SFX
-        run: python tools/sfxv1.py
+        run: |
+          python tools/sfxv1.py
+          sed -i 's/v0\.8\.1/v0.8.0/g; s/v=081/v=080/g; s/version:\x270\.8\.1\x27/version:\x270.8.0\x27/g' client.js index.html tests/*.js
       - name: Run regression suite
         run: |
           node tests/smoke-test.js
@@ -30,7 +32,7 @@ jobs:
       - name: Commit SFX v1
         run: |
           git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.email "41898282+jetpropulsioncloud@users.noreply.github.com"
           git add client.js styles.css index.html tests
           git diff --cached --quiet && exit 0
           git commit -m "Add tactile sound effects v1"
