@@ -4,14 +4,18 @@ const assert=require('assert');
 const html=fs.readFileSync('index.html','utf8');
 const client=fs.readFileSync('client.js','utf8');
 const styles=fs.readFileSync('styles.css','utf8');
+const cardUx=fs.readFileSync('card-ux.js','utf8');
+const cardStyles=fs.readFileSync('card-ux.css','utf8');
 
-assert(html.includes('styles.css?v=080'),'styles.css must be the single stylesheet');
+assert(html.includes('styles.css?v=080'),'styles.css must be loaded');
+assert(html.includes('card-ux.css?v=081'),'v0.8.1 card UX stylesheet must be loaded');
 assert(html.includes('data.js?v=080')&&html.includes('engine.js?v=080')&&html.includes('client.js?v=080'),'consolidated runtime files are not wired');
-assert((html.match(/<script src=/g)||[]).length===3,'index.html should load exactly three runtime scripts');
-assert((html.match(/rel="stylesheet"/g)||[]).length===1,'index.html should load exactly one stylesheet');
+assert(html.includes('card-ux.js?v=081'),'v0.8.1 card UX behavior layer must be loaded');
+assert((html.match(/<script src=/g)||[]).length===4,'index.html should load three core runtime scripts plus card-ux.js');
+assert((html.match(/rel="stylesheet"/g)||[]).length===2,'index.html should load the core stylesheet plus card-ux.css');
 assert(client.includes('CoordinatedMutationObserver'),'coordinated observer shim missing from consolidated client');
 assert(client.includes('appObservers'),'single app observer registry missing');
-assert(html.includes('Tabletop Client v0.8.0'),'presentation version not bumped');
+assert(html.includes('Tabletop Client v0.8.1'),'presentation version not bumped');
 
 const retired=[
   'client-v062.js','ui-coordinator.js','tabletop-interactions.js','tabletop-deck-polish.js','social-links.js','ability-ui.js',
@@ -108,3 +112,10 @@ assert(styles.includes('grid-template-rows:auto minmax(0,1fr) auto'),'client sho
 assert(styles.includes('body.matchViewport .tableSurface')&&styles.includes('overflow-x:auto;overflow-y:hidden'),'table should use horizontal lane overflow only');
 assert(!styles.includes('body.matchViewport .tableSurface{transform:scale'),'one-screen tabletop must not use transform scaling');
 console.log('✓ match viewport is one-screen, vertically fixed, and keeps cards as normal DOM elements');
+
+assert(cardStyles.includes('Hearthstone-inspired hand tray'),'card-table hand tray styling missing');
+assert(cardStyles.includes('.handCard:hover')&&cardStyles.includes('scale(1.30)'),'hand hover lift/zoom missing');
+assert(cardStyles.includes('played cards collapse into readable board pieces'),'compact board-piece presentation missing');
+assert(cardUx.includes('fanHand')&&cardUx.includes('--fan-rotate'),'dynamic hand fanning behavior missing');
+assert(cardUx.includes("Client v0.8.1 · Rules v0.6.2"),'v0.8.1 chrome sync missing');
+console.log('✓ v0.8.1 card-table hand, compact board pieces, and fan behavior');
