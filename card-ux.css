@@ -1,0 +1,416 @@
+/* Hearth & Hollow — Card Table UX pass
+   Interaction goal: keep v0.6.2 rules/state intact while making the client
+   read like a digital card game instead of a dashboard.
+*/
+
+:root{
+  --ux-card-w:172px;
+  --ux-card-h:238px;
+  --ux-board-card-w:132px;
+  --ux-tray:#211f1a;
+  --ux-tray2:#302b22;
+  --ux-cream:#fff7df;
+  --ux-gold:#d4aa58;
+  --ux-glow:rgba(239,210,126,.58);
+}
+
+/* ---------- quieter chrome / more table ---------- */
+body.matchViewport .client{
+  padding:6px 10px 0;
+}
+
+body.matchViewport .tableTopbar{
+  min-height:42px;
+  padding:6px 10px;
+  gap:10px;
+  border-radius:12px;
+  background:linear-gradient(180deg,rgba(255,250,236,.94),rgba(232,221,196,.92));
+  box-shadow:0 5px 16px rgba(20,19,15,.23);
+}
+
+body.matchViewport .brand{font-size:18px}
+body.matchViewport .brandBlock{min-width:165px}
+body.matchViewport .brandBlock>span{font-size:7px}
+body.matchViewport .phasePip{padding:4px 7px;font-size:8px}
+body.matchViewport .utilityButtons button{padding:5px 7px}
+body.matchViewport .communityMini{display:none}
+
+body.matchViewport .tableSurface{
+  border-radius:26px;
+  border-color:#7c684c;
+  background:
+    radial-gradient(circle at 50% 45%,rgba(193,210,177,.12),transparent 48%),
+    repeating-linear-gradient(90deg,rgba(255,255,255,.018) 0 1px,transparent 1px 10px),
+    linear-gradient(135deg,#65705a,#56614f 48%,#485143);
+  box-shadow:0 24px 54px rgba(15,16,12,.42),inset 0 0 0 4px rgba(245,228,189,.055),inset 0 0 68px rgba(16,20,15,.30);
+}
+
+body.matchViewport .tableSurface::before{
+  border-style:solid;
+  border-color:rgba(238,223,188,.12);
+}
+
+/* ---------- player identity as compact hero plates ---------- */
+body.matchViewport .tableSurface>.playerBanner{
+  width:min(610px,72%);
+  grid-template-columns:minmax(160px,1fr) auto auto;
+  border-radius:999px;
+  padding:5px 9px 5px 12px;
+  background:linear-gradient(180deg,rgba(255,248,225,.97),rgba(226,210,175,.95));
+  border:1px solid #ad9365;
+  box-shadow:0 5px 16px rgba(31,28,20,.25),inset 0 1px rgba(255,255,255,.76);
+}
+body.matchViewport .opponentBanner{justify-self:start}
+body.matchViewport .homeBanner{justify-self:end}
+body.matchViewport .tableSurface>.playerBanner.turnActive{
+  box-shadow:0 0 0 2px rgba(226,201,125,.78),0 0 22px rgba(226,201,125,.27),0 5px 16px rgba(31,28,20,.28);
+}
+body.matchViewport .tableSurface>.playerBanner .keeperChip{display:none}
+body.matchViewport .tableSurface>.playerBanner .identity>b{font-size:14px}
+body.matchViewport .tableSurface>.playerBanner .sideLabel{font-size:7px}
+body.matchViewport .hearthMedallion,
+body.matchViewport .prosperityStat{
+  min-width:65px;
+  padding:4px 7px;
+  border-radius:999px;
+}
+body.matchViewport .hearthMedallion>b,
+body.matchViewport .prosperityStat>b{font-size:15px}
+body.matchViewport .hearthMedallion>small,
+body.matchViewport .prosperityStat>em{font-size:6px}
+
+/* ---------- lanes should feel like places, not panels ---------- */
+body.matchViewport .tableSurface>.boardLane{
+  background:transparent;
+  border:0;
+  border-radius:0;
+  padding:2px 7px 4px;
+}
+body.matchViewport .tableSurface>.fieldLane{
+  border-top:1px dashed rgba(229,222,197,.13);
+  border-bottom:1px dashed rgba(229,222,197,.13);
+}
+body.matchViewport .tableSurface .laneTitle{
+  opacity:.72;
+  padding:0 4px;
+}
+body.matchViewport .tableSurface .laneTitle>small{opacity:.72}
+body.matchViewport .tableSurface .emptyZone{
+  min-height:42px;
+  background:rgba(17,22,16,.08);
+  border-color:rgba(235,226,204,.17);
+}
+
+/* ---------- played cards collapse into readable board pieces ---------- */
+body.matchViewport .tableSurface .buildingGrid,
+body.matchViewport .tableSurface .critterRow{
+  justify-content:center;
+  gap:8px;
+}
+body.matchViewport .tableSurface .gameCard{
+  flex:0 0 var(--ux-board-card-w);
+  width:var(--ux-board-card-w);
+  min-width:var(--ux-board-card-w);
+  border:2px solid rgba(94,78,54,.92);
+  border-radius:11px;
+  background:linear-gradient(180deg,#fff8e5,#efe3c8);
+  box-shadow:0 5px 12px rgba(27,24,18,.26);
+  overflow:hidden;
+}
+body.matchViewport .tableSurface .building{flex-basis:140px;width:140px;min-width:140px}
+body.matchViewport .tableSurface .gameCard:hover,
+body.matchViewport .tableSurface .gameCard:focus-visible{
+  transform:translateY(-5px) scale(1.035);
+  z-index:25;
+  box-shadow:0 11px 25px rgba(21,19,15,.38),0 0 0 2px rgba(238,210,128,.38);
+}
+body.matchViewport .tableSurface .artWindow{
+  height:43%;
+  min-height:40px;
+  border-bottom:1px solid rgba(111,91,58,.55);
+}
+body.matchViewport .tableSurface .artWindow>span{font-size:25px}
+body.matchViewport .tableSurface .artWindow>small{font-size:6px;padding:0 4px;text-align:center}
+body.matchViewport .tableSurface .cardFrame{padding:5px 6px 6px}
+body.matchViewport .tableSurface .cardTop b{font-size:10px;line-height:1.05}
+body.matchViewport .tableSurface .cardTop small{font-size:6px}
+body.matchViewport .tableSurface .badgeRow{margin:4px 0;gap:3px;flex-wrap:nowrap}
+body.matchViewport .tableSurface .badgeRow span{
+  padding:2px 4px;
+  font-size:8px;
+  white-space:nowrap;
+}
+body.matchViewport .tableSurface .building .cardFrame>p{display:none}
+body.matchViewport .tableSurface .homeLine,
+body.matchViewport .tableSurface .toolLine{font-size:7px;margin:3px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body.matchViewport .tableSurface .musterIdentity{
+  margin:3px 0;
+  padding:3px 5px;
+  border-radius:6px;
+  display:block;
+}
+body.matchViewport .tableSurface .musterIdentity strong{font-size:10px}
+body.matchViewport .tableSurface .musterIdentity small{display:block;font-size:5.5px;margin-top:1px}
+body.matchViewport .tableSurface .dragHint{font-size:6px;padding:2px 4px;margin-top:2px}
+
+/* ---------- resource tokens ---------- */
+.handResourceStrip .resourceRow{gap:6px}
+.handResourceStrip .resourceChip{
+  min-width:46px;
+  min-height:31px;
+  justify-content:center;
+  border:1px solid #b69152;
+  background:radial-gradient(circle at 38% 28%,#fff7d9,#ead4a4 72%);
+  border-radius:999px;
+  box-shadow:inset 0 2px rgba(255,255,255,.7),0 3px 8px rgba(8,8,6,.24);
+}
+.handResourceStrip .resourceChip span{font-size:15px}
+.handResourceStrip .resourceChip b{font-size:13px}
+
+/* ---------- Hearthstone-inspired hand tray ---------- */
+.client{padding-bottom:225px}
+.handDock{
+  left:50%;
+  width:min(1160px,calc(100vw - 150px));
+  min-height:178px;
+  padding:9px 28px 2px;
+  border:1px solid rgba(191,161,106,.42);
+  border-bottom:0;
+  border-radius:48% 48% 0 0 / 28px 28px 0 0;
+  background:
+    radial-gradient(ellipse at 50% 115%,rgba(112,82,45,.44),transparent 52%),
+    linear-gradient(180deg,rgba(49,45,36,.42),rgba(29,27,22,.97) 28%,rgba(20,19,16,.99));
+  box-shadow:0 -12px 38px rgba(12,12,10,.38),inset 0 1px rgba(255,238,197,.12);
+  backdrop-filter:blur(8px);
+  overflow:visible;
+}
+.handDock::before{
+  content:'';
+  position:absolute;
+  left:7%;right:7%;bottom:0;height:76%;
+  border-radius:50% 50% 0 0 / 26px 26px 0 0;
+  border-top:1px solid rgba(235,205,142,.18);
+  pointer-events:none;
+}
+.handHeader{
+  position:relative;
+  z-index:8;
+  min-height:31px;
+  margin:0 5px -3px;
+  align-items:center;
+}
+.handHeader>div:first-child{opacity:.72}
+.handHeader .eyebrow{font-size:7px;color:#d8ceb8}
+.handHeader b{font-size:11px;color:#f4ead6}
+.handDock .deckCounters{opacity:.72}
+.handFidgets{display:none}
+
+.handRow{
+  position:relative;
+  z-index:9;
+  height:188px;
+  display:flex;
+  align-items:flex-end;
+  justify-content:center;
+  gap:0;
+  padding:10px 80px 0;
+  overflow:visible;
+  scrollbar-width:none;
+}
+.handRow::-webkit-scrollbar{display:none}
+
+.handCard{
+  position:relative;
+  flex:0 0 var(--ux-card-w);
+  width:var(--ux-card-w);
+  height:var(--ux-card-h);
+  margin-left:-42px;
+  transform-origin:50% 115%;
+  transform:translateY(var(--fan-rise,0px)) rotate(var(--fan-rotate,0deg));
+  z-index:var(--fan-z,10);
+  border:3px solid #6f5a38;
+  border-radius:15px;
+  background:linear-gradient(180deg,#fff9e9,#eadcbf);
+  box-shadow:0 10px 17px rgba(8,8,6,.33),inset 0 0 0 1px rgba(255,255,255,.52);
+  transition:transform .18s cubic-bezier(.2,.8,.2,1),box-shadow .18s ease,filter .18s ease;
+  overflow:hidden;
+}
+.handCard:first-child{margin-left:0}
+.handCard:hover,
+.handCard:focus-visible{
+  transform:translateY(-72px) scale(1.30) rotate(0deg)!important;
+  z-index:100!important;
+  filter:none;
+  box-shadow:0 25px 44px rgba(7,7,5,.52),0 0 0 2px rgba(236,203,116,.66),0 0 30px rgba(236,203,116,.25);
+  outline:none;
+}
+.handCard.lockedCard{filter:saturate(.78) brightness(.93)}
+.handCard .artWindow{
+  height:92px;
+  border-bottom:2px solid #8f7447;
+  background:radial-gradient(circle at 50% 25%,#f1e5c5,#bfae7c 76%);
+}
+.handCard .artWindow>span{font-size:42px}
+.handCard .artWindow>small{
+  margin-top:2px;
+  font-size:6.8px;
+  letter-spacing:.08em;
+  color:#544b39;
+}
+.handCard .cardFrame{
+  position:relative;
+  padding:8px 9px 9px;
+  background:linear-gradient(180deg,rgba(255,250,235,.98),rgba(239,228,202,.98));
+}
+.handCard .cardTop{
+  margin:-15px 5px 4px;
+  padding:5px 7px;
+  min-height:30px;
+  align-items:center;
+  border:1px solid #9c8254;
+  border-radius:8px;
+  background:linear-gradient(180deg,#fff8df,#e9d6aa);
+  box-shadow:0 2px 5px rgba(52,42,26,.22);
+}
+.handCard .cardTop b{
+  font:800 12px/1.05 Georgia,serif;
+  color:#2d342d;
+}
+.handCard .badgeRow{justify-content:center;margin:5px 0 4px}
+.handCard .badgeRow span{
+  min-width:48px;
+  text-align:center;
+  border-color:#bda36f;
+  background:#f4e3b9;
+  font-size:9px;
+}
+.handCard p{
+  margin:5px 2px 4px;
+  font-size:9px;
+  line-height:1.34;
+  color:#3e463e;
+}
+.handCard .costLine{
+  display:inline-flex;
+  margin:4px 0;
+  padding:3px 6px;
+  border-radius:999px;
+  border:1px solid #bda36f;
+  background:#f5e7c5;
+  color:#4b4638;
+  font-weight:900;
+}
+.handCard .dragHint,
+.handCard .whyDisabled,
+.handCard .manualTag{
+  position:absolute;
+  left:8px;right:8px;bottom:7px;
+  text-align:center;
+}
+
+/* selected / legal cards need unmistakable affordance */
+.handCard.recruitDraggable{
+  box-shadow:0 10px 18px rgba(8,8,6,.33),0 0 0 2px rgba(216,187,101,.48),0 0 22px rgba(216,187,101,.19);
+}
+.gameCard.attackDraggable,
+.gameCard.blockDraggable{
+  animation:uxPlayablePulse 1.8s ease-in-out infinite;
+}
+@keyframes uxPlayablePulse{
+  0%,100%{filter:none}
+  50%{filter:brightness(1.09)}
+}
+
+/* ---------- card closeup should be the premium reading surface ---------- */
+.cardInspector .inspectorPanel{
+  border-radius:22px;
+  border:1px solid rgba(218,189,126,.72);
+  background:linear-gradient(180deg,rgba(42,39,32,.98),rgba(21,21,18,.99));
+  box-shadow:0 28px 70px rgba(7,7,5,.58),0 0 0 1px rgba(255,238,194,.08);
+}
+.cardInspector .inspectorHint{color:#d9cfb8}
+.cardInspector .inspectorClone.gameCard{
+  border-width:3px;
+  border-color:#8e7245;
+  border-radius:17px;
+  box-shadow:0 22px 44px rgba(0,0,0,.42);
+}
+.cardInspector .inspectorClone .artWindow{min-height:120px}
+.cardInspector .inspectorClone .artWindow>span{font-size:56px}
+.cardInspector .inspectorClone .cardTop b{font-size:17px}
+.cardInspector .inspectorClone p{font-size:12px;line-height:1.45}
+
+/* ---------- end turn becomes a board-side action ---------- */
+@media(min-width:1100px){
+  body.matchViewport .endTurnButton{
+    position:fixed;
+    right:22px;
+    top:50%;
+    z-index:72;
+    width:76px;
+    height:76px;
+    padding:8px;
+    border-radius:50%;
+    border:2px solid #c4a35d;
+    background:radial-gradient(circle at 38% 28%,#8ca071,#4e6545 68%,#3a5036);
+    box-shadow:0 8px 20px rgba(15,16,12,.36),inset 0 2px rgba(255,255,255,.18),0 0 0 5px rgba(213,181,104,.08);
+    font:900 11px/1.1 Georgia,serif;
+    text-transform:uppercase;
+    letter-spacing:.03em;
+  }
+  body.matchViewport .endTurnButton:hover:not(:disabled){
+    transform:translateY(-2px) scale(1.035);
+    box-shadow:0 12px 28px rgba(15,16,12,.42),0 0 24px rgba(225,194,113,.28);
+  }
+}
+
+/* subtle entry animation added by card-ux.js */
+.uxCardEnter{animation:uxCardEnter .34s cubic-bezier(.2,.85,.25,1) both}
+@keyframes uxCardEnter{
+  from{opacity:.15;transform:translateY(18px) scale(.88)}
+  to{opacity:1}
+}
+
+/* ---------- responsive fallbacks ---------- */
+@media(max-width:1180px){
+  :root{--ux-card-w:156px;--ux-card-h:218px;--ux-board-card-w:120px}
+  .handDock{width:calc(100vw - 72px);padding-left:18px;padding-right:18px}
+  .handRow{padding-left:48px;padding-right:48px}
+  .handCard{margin-left:-38px}
+  .handCard:hover,.handCard:focus-visible{transform:translateY(-58px) scale(1.22) rotate(0deg)!important}
+  body.matchViewport .tableSurface>.playerBanner{width:min(670px,88%)}
+}
+
+@media(max-width:820px){
+  :root{--ux-card-w:142px;--ux-card-h:202px;--ux-board-card-w:112px}
+  .client{padding-bottom:198px}
+  .handDock{width:100vw;min-height:154px;border-radius:28px 28px 0 0;padding:6px 8px 0}
+  .handHeader{margin:0 8px}
+  .handRow{height:158px;justify-content:flex-start;overflow-x:auto;overflow-y:visible;padding:8px 20px 0}
+  .handCard{margin-left:-28px}
+  .handCard:first-child{margin-left:0}
+  .handCard:hover,.handCard:focus-visible{transform:translateY(-38px) scale(1.12) rotate(0deg)!important}
+  .handCard .artWindow{height:72px}
+  .handCard .artWindow>span{font-size:33px}
+  .handCard .cardTop b{font-size:10px}
+  .handCard p{font-size:8px}
+  body.matchViewport .tableSurface>.playerBanner{width:96%}
+  body.matchViewport .tableSurface .buildingGrid,
+  body.matchViewport .tableSurface .critterRow{justify-content:flex-start}
+}
+
+@media(max-height:760px) and (min-width:821px){
+  :root{--ux-card-w:150px;--ux-card-h:205px}
+  .client{padding-bottom:188px}
+  .handDock{min-height:150px}
+  .handRow{height:151px}
+  .handCard{margin-left:-36px}
+  .handCard .artWindow{height:70px}
+  .handCard:hover,.handCard:focus-visible{transform:translateY(-48px) scale(1.18) rotate(0deg)!important}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .handCard,.gameCard,.endTurnButton{transition:none!important}
+  .gameCard.attackDraggable,.gameCard.blockDraggable{animation:none!important}
+  .uxCardEnter{animation:none!important}
+}
