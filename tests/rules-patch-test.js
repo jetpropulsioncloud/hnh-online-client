@@ -43,4 +43,21 @@ function addMusterAndCritter(g,pi){
   console.log('✓ unresolved attack cannot be skipped with End turn');
 }
 
+{
+  const g=prep(),pi=g.active;
+  addMusterAndCritter(g,pi);
+  const r=g.players[pi].residents[0];
+  assert(E.declareAttack(g,pi,r.uid,'hearthseed').ok);
+  assert.equal(r.tired,true,'normal attacker tires when drafted');
+  assert(E.cancelAttack(g,pi,r.uid).ok,'draft attacker can be withdrawn before declaration');
+  assert.equal(g.combat.attacks.length,0,'withdrawn attacker leaves attack draft');
+  assert.equal(r.attacking,false,'withdrawn attacker is no longer attacking');
+  assert.equal(r.tired,false,'withdrawn attacker becomes ready again');
+  assert(!g.players[pi].attackedThisStep.includes(r.uid),'withdrawn attacker can be selected again');
+  assert(E.declareAttack(g,pi,r.uid,'hearthseed').ok,'withdrawn attacker can be re-declared');
+  assert(E.commitAttacks(g,pi).ok);
+  assert.equal(E.cancelAttack(g,pi,r.uid).ok,false,'attackers cannot be changed after Declare Attack');
+  console.log('✓ draft attackers can be removed and re-selected before Declare Attack');
+}
+
 console.log('\nSequencing patch tests passed.');

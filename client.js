@@ -35,7 +35,15 @@
   }
 
   function postAction(){
-    if(game?.mode==='ai'&&game.phase==='Block'&&game.active!==game.aiIndex&&1-game.active===game.aiIndex)autoAssignAIBlocks();
+    if(game?.mode==='ai'&&game.phase==='Block'&&game.active!==game.aiIndex&&1-game.active===game.aiIndex){
+      autoAssignAIBlocks();
+      const attacker=game.players[game.active];
+      const reactionReady=attacker.reactionRoundUsed!==E.currentRound(game)&&attacker.hand.some(c=>c.subtype==='Reaction')&&E.activeBuildings(attacker).some(b=>b.reactionAccess);
+      if(!reactionReady&&!game.combat.resolved){
+        clearTimeout(postAction.combatTimer);
+        postAction.combatTimer=setTimeout(()=>{if(game&&game.phase==='Block'&&!game.combat.resolved&&game.active!==game.aiIndex){E.resolveCombat(game);render();scheduleAI();}},900);
+      }
+    }
     render();scheduleAI();
   }
 
@@ -243,7 +251,9 @@
     const directAttrs=canDragBlock?` data-block-indices="${legalBlockIndices.join(',')}" title="Drag this Critter onto an attacker to block"`:canDragAttack?' title="Drag this Critter to an enemy target"':'';
     const incomingAttackIndex=game.phase==='Block'?game.combat.attacks.findIndex(a=>a.attackerUid===r.uid):-1;
     const incomingAttackAttr=incomingAttackIndex>=0?` data-block-attack-index="${incomingAttackIndex}"`:'';
-    return `<article class="gameCard critter ${!ready?'inactive':''} ${r.tired?'tired':''} ${r.attacking?'attacking':''} ${r.blocking?'blocking':''}${directClass}" data-resident-uid="${r.uid}" data-player-index="${pi}"${directAttrs}${incomingAttackAttr}><div class="artWindow critterArt"><span>${critterIcon(r)}</span><small>${r.advanced?'ADVANCED · ':''}${(r.musterClasses||[]).join(' · ')}</small></div><div class="cardFrame"><div class="cardTop"><b>${esc(r.name)}</b>${r.shield?'<span class="shield">🛡</span>':''}</div><div class="badgeRow critterStats"><span>💪 ${r.might}</span><span>❤️ ${r.damage}/${grit}</span></div><div class="homeLine">🏡 ${esc(p.village.find(b=>b.uid===r.musterUid)?.name||'No home')}</div>${r.tool?`<div class="toolLine">🧰 ${esc(r.tool.name)}</div>`:''}${fresh?'<span class="freshTag">New · can block</span>':''}${canDragBlock?'<span class="dragHint blockHint">Drag onto attacker</span>':canDragAttack?'<span class="dragHint attackHint">Drag to attack</span>':''}</div></article>`;
+    const canCancelDraft=pi===game.active&&isHuman(pi)&&game.phase==='Attack'&&!game.combat.committed&&game.combat.attacks.some(a=>a.attackerUid===r.uid);
+    const cancelDraft=canCancelDraft?`<button class="cancelAttackDraft" title="Remove from attack" aria-label="Remove ${esc(r.name)} from attack" onclick="event.stopPropagation();UI.cancelAttack(${r.uid})">×</button>`:'';
+    return `<article class="gameCard critter ${!ready?'inactive':''} ${r.tired?'tired':''} ${r.attacking?'attacking':''} ${r.blocking?'blocking':''}${directClass}" data-resident-uid="${r.uid}" data-player-index="${pi}"${directAttrs}${incomingAttackAttr}>${cancelDraft}<div class="artWindow critterArt"><span>${critterIcon(r)}</span><small>${r.advanced?'ADVANCED · ':''}${(r.musterClasses||[]).join(' · ')}</small></div><div class="cardFrame"><div class="cardTop"><b>${esc(r.name)}</b>${r.shield?'<span class="shield">🛡</span>':''}</div><div class="badgeRow critterStats"><span>💪 ${r.might}</span><span>❤️ ${r.damage}/${grit}</span></div><div class="homeLine">🏡 ${esc(p.village.find(b=>b.uid===r.musterUid)?.name||'No home')}</div>${r.tool?`<div class="toolLine">🧰 ${esc(r.tool.name)}</div>`:''}${fresh?'<span class="freshTag">New · can block</span>':''}${canDragBlock?'<span class="dragHint blockHint">Drag onto attacker</span>':canDragAttack?'<span class="dragHint attackHint">Drag to attack</span>':''}</div></article>`;
   }
 
   function handPanel(){
@@ -308,11 +318,13 @@
   function combatPanel(){
     if(!game.combat.attacks.length&&game.phase!=='Block')return `<section class="combatRibbon quiet compactTrial"><span>⚔</span><b>Frost Trial</b><small>Drag a ready Critter to an enemy target.</small></section>`;
     const defIndex=1-game.active,humanDefender=isHuman(defIndex),humanAttacker=isHuman(game.active);
-    if(!game.combat.committed&&humanAttacker){const n=game.combat.attacks.length;return `<section class="combatRibbon activeCombat combatDraft"><div class="combatHeading"><span>⚔</span><div><b>${n} attacker${n===1?'':'s'} ready</b><small>Orange arrows show every declared attack. Drag more Critters or commit.</small></div></div><div class="combatButtons"><button class="primaryBtn" onclick="UI.commitAttacks()">Commit attack${n>1?` (${n})`:''}</button></div></section>`;}
+    if(!game.combat.committed&&humanAttacker){const n=game.combat.attacks.length;return `<section class="combatRibbon activeCombat combatDraft"><div class="combatHeading"><span>⚔</span><div><b>${n} attacker${n===1?'':'s'} selected</b><small>Drag more Critters to targets, or use × on a selected Critter to change your attack.</small></div></div><div class="combatButtons"><button class="primaryBtn" onclick="UI.commitAttacks()">Declare Attack</button></div></section>`;}
     const blocks=game.combat.attacks.filter(a=>a.blockerUid).length;
-    const canResolve=game.phase==='Block'&&(humanAttacker||humanDefender);
-    const blockHelp=humanDefender?'Drag a ready Critter onto an attacking Critter to block. Blue arrows show blocks.':`${blocks} block${blocks===1?'':'s'} assigned · blue arrows show blockers.`;
-    return `<section class="combatRibbon activeCombat compactCombat"><div class="combatHeading"><span>⚔</span><div><b>${game.combat.attacks.length} attack${game.combat.attacks.length===1?'':'s'} · ${blocks} block${blocks===1?'':'s'}</b><small>${blockHelp}</small></div></div><div class="combatButtons">${canResolve?'<button class="primaryBtn" onclick="UI.resolveCombat()">Resolve combat</button>':''}</div>${game.phase==='Block'?reactionTray(humanIndex()):''}</section>`;
+    const attackerReactionReady=humanAttacker&&game.phase==='Block'&&game.players[game.active].reactionRoundUsed!==E.currentRound(game)&&game.players[game.active].hand.some(c=>c.subtype==='Reaction')&&E.activeBuildings(game.players[game.active]).some(b=>b.reactionAccess);
+    const canResolve=game.phase==='Block'&&(humanDefender||attackerReactionReady);
+    const resolveLabel=humanDefender?'Done Blocking':'Resolve Combat';
+    const blockHelp=humanDefender?'Drag a ready Critter onto an attacking Critter to block. Blue arrows show blocks.':attackerReactionReady?'AI blocks are set. Play a Reaction if you want, then resolve.':`${blocks} block${blocks===1?'':'s'} assigned.`;
+    return `<section class="combatRibbon activeCombat compactCombat"><div class="combatHeading"><span>⚔</span><div><b>${game.combat.attacks.length} attack${game.combat.attacks.length===1?'':'s'} · ${blocks} block${blocks===1?'':'s'}</b><small>${blockHelp}</small></div></div><div class="combatButtons">${canResolve?`<button class="primaryBtn" onclick="UI.resolveCombat()">${resolveLabel}</button>`:''}</div>${game.phase==='Block'?reactionTray(humanIndex()):''}</section>`;
   }
 
   function reactionTray(pi){
@@ -405,6 +417,7 @@
     tool:(uid,sid)=>doAction(()=>E.playTool(game,game.active,uid,+document.getElementById(sid).value)),
     supply:(uid,sid1,sid2)=>doAction(()=>E.playSupply(game,game.active,uid,document.getElementById(sid1).value,document.getElementById(sid2).value)),
     workshop:(buid,tid,rid)=>doAction(()=>E.useWorkshop(game,game.active,buid,+document.getElementById(tid).value,document.getElementById(rid).value)),
+    cancelAttack:uid=>doAction(()=>E.cancelAttack(game,game.active,uid)),
     commitAttacks:()=>doAction(()=>E.commitAttacks(game,game.active)),
     block:i=>{const sid=`blk-${i}`;doAction(()=>E.assignBlock(game,1-game.active,+document.getElementById(sid).value,i));},
     reaction:(pi,uid,sid)=>doAction(()=>E.playReaction(game,pi,uid,document.getElementById(sid).value)),
