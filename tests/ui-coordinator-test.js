@@ -101,3 +101,10 @@ assert(client.includes("pickup(){")&&client.includes("recruit(){")&&client.inclu
 assert(client.includes("localStorage.getItem(STORAGE_KEY)")&&client.includes('sfxVolume'),'SFX persistence or volume controls missing');
 assert(styles.includes('.audioControls')&&styles.includes('.sfxVolume'),'SFX control styling missing');
 console.log('✓ tactile SFX manager, event hooks, mute and volume controls present');
+
+assert(client.includes("document.body.classList.toggle('matchViewport',!!game)"),'match viewport body state missing');
+assert(styles.includes('body.matchViewport{height:100dvh')&&styles.includes('overflow:hidden;overscroll-behavior:none'),'match page should not vertically scroll');
+assert(styles.includes('grid-template-rows:auto minmax(0,1fr) auto'),'client should allocate viewport between topbar, table, and hand');
+assert(styles.includes('body.matchViewport .tableSurface')&&styles.includes('overflow-x:auto;overflow-y:hidden'),'table should use horizontal lane overflow only');
+assert(!styles.includes('body.matchViewport .tableSurface{transform:scale'),'one-screen tabletop must not use transform scaling');
+console.log('✓ match viewport is one-screen, vertically fixed, and keeps cards as normal DOM elements');

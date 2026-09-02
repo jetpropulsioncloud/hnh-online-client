@@ -404,6 +404,7 @@
 
 
   function render(){
+    document.body.classList.toggle('matchViewport',!!game);
     if(!game){app.innerHTML=setupScreen();return;}
     const top=game.mode==='ai'?game.aiIndex:1-game.active,bottom=game.mode==='ai'?humanIndex():game.active;
     const enemy=game.players[top],home=game.players[bottom];
