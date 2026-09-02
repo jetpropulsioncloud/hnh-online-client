@@ -119,3 +119,8 @@ assert(cardStyles.includes('played cards collapse into readable board pieces'),'
 assert(cardUx.includes('fanHand')&&cardUx.includes('--fan-rotate'),'dynamic hand fanning behavior missing');
 assert(cardUx.includes("Client v0.8.1 · Rules v0.6.2"),'v0.8.1 chrome sync missing');
 console.log('✓ v0.8.1 card-table hand, compact board pieces, and fan behavior');
+
+assert(styles.includes('one-screen hand visibility correction'),'hand visibility correction missing');
+assert(styles.includes('body.matchViewport .handRow{flex:1 1 auto'),'hand row should consume available dock height');
+assert(styles.includes('height:min(190px,calc(100% - 2px))'),'hand cards should fit inside the visible dock instead of being clipped');
+console.log('✓ one-screen hand cards stay fully visible inside the viewport');
