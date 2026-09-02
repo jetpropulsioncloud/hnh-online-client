@@ -96,9 +96,6 @@ new="""    cancelAttack:uid=>doAction(()=>E.cancelAttack(game,game.active,uid)),
 """
 assert old in s, 'UI attack export hook not found'
 s=s.replace(old,new,1)
-
-s=s.replace('Client v0.8.0 · Rules v0.6.2','Client v0.8.1 · Rules v0.6.2')
-s=s.replace("version:'0.8.0'","version:'0.8.1'")
 p.write_text(s)
 
 # --- style the small X directly on selected attackers ---
@@ -106,15 +103,10 @@ p=Path('styles.css')
 s=p.read_text()
 s += """
 
-/* ===== v0.8.1 attack drafting ===== */
+/* ===== attack drafting ===== */
 .cancelAttackDraft{position:absolute;z-index:8;top:5px;right:5px;width:24px;height:24px;padding:0;border-radius:999px;background:rgba(45,42,34,.88);border:1px solid rgba(255,245,220,.75);color:#fff4dc;font:900 17px/20px ui-sans-serif,system-ui;box-shadow:0 2px 8px rgba(25,22,18,.28)}
 .cancelAttackDraft:hover{background:#8d5147;transform:scale(1.06)!important;filter:none!important}
 """
-p.write_text(s)
-
-# --- version/cache wiring ---
-p=Path('index.html')
-s=p.read_text().replace('v0.8.0','v0.8.1').replace('v=080','v=081')
 p.write_text(s)
 
 # --- tests ---
@@ -144,7 +136,7 @@ s=s.replace(needle,insert+needle,1)
 p.write_text(s)
 
 p=Path('tests/ui-coordinator-test.js')
-s=p.read_text().replace('v0.8.0','v0.8.1').replace('v=080','v=081')
+s=p.read_text()
 s += """
 assert(client.includes('cancelAttackDraft'),'selected attacker X control missing');
 assert(client.includes('>Declare Attack</button>'),'single Declare Attack action missing');
@@ -154,8 +146,3 @@ assert(styles.includes('.cancelAttackDraft'),'selected attacker X styling missin
 console.log('✓ attack drafting uses one Declare Attack button with removable selections');
 """
 p.write_text(s)
-
-# Update any remaining presentation/cache expectations.
-for tp in Path('tests').glob('*.js'):
-    t=tp.read_text().replace('v0.8.0','v0.8.1').replace('v=080','v=081')
-    tp.write_text(t)
