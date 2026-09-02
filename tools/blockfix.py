@@ -32,5 +32,5 @@ c += "\n/* ===== blocking reliability ===== */\n.blockDraggable{touch-action:non
 css.write_text(c)
 
 tp=Path('tests/ui-coordinator-test.js')
-t=tp.read_text()+"\nassert(client.includes('data-block-attack-index'),'explicit block attack index missing');\nassert(client.includes('setPointerCapture'),'pointer capture missing for direct manipulation');\nassert(css.includes('.blockDraggable{touch-action:none'),'block drag touch-action guard missing');\nconsole.log('✓ human blocking uses explicit attack targets and stable pointer capture');\n"
+t=tp.read_text()+"\nassert(client.includes('data-block-attack-index'),'explicit block attack index missing');\nassert(client.includes('setPointerCapture'),'pointer capture missing for direct manipulation');\nassert(styles.includes('.blockDraggable{touch-action:none'),'block drag touch-action guard missing');\nconsole.log('✓ human blocking uses explicit attack targets and stable pointer capture');\n"
 tp.write_text(t)
