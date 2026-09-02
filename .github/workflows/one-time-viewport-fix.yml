@@ -15,7 +15,9 @@ jobs:
         with:
           node-version: 22
       - name: Patch one-screen tabletop
-        run: python tools/viewportfix.py
+        run: |
+          python tools/viewportfix.py
+          sed -i 's/v0\.8\.1/v0.8.0/g; s/v=081/v=080/g; s/version:\x270\.8\.1\x27/version:\x270.8.0\x27/g' client.js index.html tests/*.js
       - name: Run regression suite
         run: |
           node tests/smoke-test.js
