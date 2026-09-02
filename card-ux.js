@@ -56,6 +56,11 @@
     });
   }
 
+  function syncVersion() {
+    const brandVersion = document.querySelector('.brandBlock > span');
+    if (brandVersion) brandVersion.textContent = 'Client v0.8.1 · Rules v0.6.2';
+  }
+
   function sync() {
     cancelAnimationFrame(raf);
     raf = requestAnimationFrame(() => {
@@ -63,6 +68,7 @@
       fanHand();
       animateNewCards();
       tuneAccessibility();
+      syncVersion();
       firstSync = false;
     });
   }
