@@ -9,7 +9,7 @@
     hard:{label:'Hard',skill:'hard',maxSteps:6,recruitUntil:6,buildUntil:5,attackers:4}
   };
   const AI_ACTION_DELAY=1100;
-  let game=null,toast='',aiTimer=null,drawer=null,aiDifficulty='beginner';
+  let game=null,toast='',aiTimer=null,drawer=null,aiDifficulty='beginner',resourceCoachVisible=true;
   const aiProfile=()=>AI_PROFILES[aiDifficulty]||AI_PROFILES.beginner;
 
   const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[m]));
@@ -21,7 +21,7 @@
   const aiNote=msg=>{toast=msg;clearTimeout(setToast.t);setToast.t=setTimeout(()=>{toast='';render();},1850);};
 
   function newMatch(mode,key='AS',difficulty='beginner'){
-    clearTimeout(aiTimer);drawer=null;aiDifficulty=AI_PROFILES[difficulty]?difficulty:'beginner';
+    clearTimeout(aiTimer);drawer=null;resourceCoachVisible=true;aiDifficulty=AI_PROFILES[difficulty]?difficulty:'beginner';
     game=E.createGame({mode,humanFaction:key});
     E.startGame(game);
     render();scheduleAI();
@@ -256,11 +256,15 @@
     return `<article class="gameCard critter ${!ready?'inactive':''} ${r.tired?'tired':''} ${r.attacking?'attacking':''} ${r.blocking?'blocking':''}${directClass}" data-resident-uid="${r.uid}" data-player-index="${pi}"${directAttrs}${incomingAttackAttr}>${cancelDraft}<div class="artWindow critterArt"><span>${critterIcon(r)}</span><small>${r.advanced?'ADVANCED · ':''}${(r.musterClasses||[]).join(' · ')}</small></div><div class="cardFrame"><div class="cardTop"><b>${esc(r.name)}</b>${r.shield?'<span class="shield">🛡</span>':''}</div><div class="badgeRow critterStats"><span>💪 ${r.might}</span><span>❤️ ${r.damage}/${grit}</span></div><div class="homeLine">🏡 ${esc(p.village.find(b=>b.uid===r.musterUid)?.name||'No home')}</div>${r.tool?`<div class="toolLine">🧰 ${esc(r.tool.name)}</div>`:''}${fresh?'<span class="freshTag">New · can block</span>':''}${canDragBlock?'<span class="dragHint blockHint">Drag onto attacker</span>':canDragAttack?'<span class="dragHint attackHint">Drag to attack</span>':''}</div></article>`;
   }
 
+  function resourceCoach(){
+    return resourceCoachVisible?`<div class="resourceCoach"><b>Your Resources</b><span>Spend these to build, recruit, and play cards.</span><button type="button" onclick="UI.dismissResourceCoach()" aria-label="Dismiss resource tip">Got it</button></div>`:'';
+  }
+
   function handPanel(){
     const pi=humanIndex(),p=game.players[pi];
-    if(game.mode==='ai'&&game.active===game.aiIndex)return `<section class="handDock">${tableFidgets()}<div class="handHeader"><div><span class="eyebrow">YOUR HAND</span><b>${p.hand.length} cards</b></div><div class="handResourceStrip">${resources(p)}</div><span class="locked">Opponent turn</span></div><div class="handRow">${p.hand.map(c=>handCard(p,pi,c,false)).join('')}</div></section>`;
+    if(game.mode==='ai'&&game.active===game.aiIndex)return `<section class="handDock">${tableFidgets()}<div class="handHeader"><div><span class="eyebrow">YOUR HAND</span><b>${p.hand.length} cards</b></div><div class="handResourceWrap ${resourceCoachVisible?'resourceCoachActive':''}">${resourceCoach()}<div class="handResourceStrip" onclick="UI.dismissResourceCoach()">${resources(p)}</div></div><span class="locked">Opponent turn</span></div><div class="handRow">${p.hand.map(c=>handCard(p,pi,c,false)).join('')}</div></section>`;
     const owner=game.mode==='ai'?p:game.players[game.active],ownerPi=game.mode==='ai'?pi:game.active;
-    return `<section class="handDock">${tableFidgets()}<div class="handHeader"><div><span class="eyebrow">${game.mode==='ai'?'YOUR HAND':'ACTIVE HAND'}</span><b>${owner.hand.length} cards</b></div><div class="handResourceStrip">${resources(owner)}</div><div class="deckCounters"><span>🎴 ${owner.fieldDeck.length}</span><span>🍂 ${owner.compost.length}</span></div></div>${game.phase==='Discard'?`<div class="discardNotice">Rest: discard down to 7 · choose ${owner.hand.length-7} more.</div>`:''}<div class="handRow">${owner.hand.map(c=>handCard(owner,ownerPi,c,true)).join('')}</div></section>`;
+    return `<section class="handDock">${tableFidgets()}<div class="handHeader"><div><span class="eyebrow">${game.mode==='ai'?'YOUR HAND':'ACTIVE HAND'}</span><b>${owner.hand.length} cards</b></div><div class="handResourceWrap ${resourceCoachVisible?'resourceCoachActive':''}">${resourceCoach()}<div class="handResourceStrip" onclick="UI.dismissResourceCoach()">${resources(owner)}</div></div><div class="deckCounters"><span>🎴 ${owner.fieldDeck.length}</span><span>🍂 ${owner.compost.length}</span></div></div>${game.phase==='Discard'?`<div class="discardNotice">Rest: discard down to 7 · choose ${owner.hand.length-7} more.</div>`:''}<div class="handRow">${owner.hand.map(c=>handCard(owner,ownerPi,c,true)).join('')}</div></section>`;
   }
 
   function handArt(c){
@@ -410,6 +414,7 @@
   window.UI={
     newMatch,reset:()=>{clearTimeout(aiTimer);game=null;toast='';drawer=null;render();},
     drawer:name=>{drawer=name;render();},
+    dismissResourceCoach:()=>{if(!resourceCoachVisible)return;resourceCoachVisible=false;render();},
     fidget:el=>{if(!el)return;el.classList.remove('fidgetPop');void el.offsetWidth;el.classList.add('fidgetPop');setTimeout(()=>el.classList.remove('fidgetPop'),520);},
     harvest:r=>doAction(()=>E.chooseHarvest(game,r)),
     build:id=>doAction(()=>E.build(game,game.active,id)),

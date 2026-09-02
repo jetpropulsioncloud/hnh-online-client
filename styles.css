@@ -291,3 +291,13 @@ body:has(.cardInspector.pinned) .sideDeckRail{
 .handResourceStrip .resourceChip span{font-size:14px}.handResourceStrip .resourceChip b{font-size:12px}
 .homeBanner .bannerResources:empty{display:none}
 @media (max-height:760px){.client{padding-bottom:225px}.handCard{height:192px;flex-basis:154px}.handDock{padding-top:7px}.handRow{padding-bottom:8px}}
+
+
+/* ===== resource HUD readability + new-player coach ===== */
+.handResourceStrip .resourceChip,.handResourceStrip .resourceChip b,.handResourceStrip .resourceChip span{color:#17140f!important}
+.handResourceWrap{position:relative;margin-left:auto;display:flex;align-items:center}
+.handResourceWrap.resourceCoachActive .handResourceStrip{border-radius:999px;box-shadow:0 0 0 2px #f3c75f,0 0 0 6px rgba(243,199,95,.22),0 0 18px rgba(255,213,99,.46);animation:resourceCoachPulse 1.7s ease-in-out infinite}
+.resourceCoach{position:absolute;z-index:70;left:50%;bottom:calc(100% + 12px);transform:translateX(-50%);width:max-content;max-width:260px;padding:9px 11px;border:1px solid #d4aa4f;border-radius:10px;background:#fff3cf;color:#17140f;box-shadow:0 8px 22px rgba(20,18,14,.3);display:grid;grid-template-columns:1fr auto;column-gap:10px;row-gap:2px;align-items:center}
+.resourceCoach:after{content:'';position:absolute;left:50%;bottom:-7px;width:12px;height:12px;background:#fff3cf;border-right:1px solid #d4aa4f;border-bottom:1px solid #d4aa4f;transform:translateX(-50%) rotate(45deg)}
+.resourceCoach b{font-size:12px;color:#17140f}.resourceCoach span{grid-column:1/2;font-size:10px;line-height:1.25;color:#3c3426}.resourceCoach button{grid-column:2;grid-row:1/3;padding:4px 7px;border-radius:7px;border:1px solid #b98c34;background:#f8dfa0;color:#17140f;font-size:10px;font-weight:800;cursor:pointer}
+@keyframes resourceCoachPulse{0%,100%{filter:none}50%{filter:brightness(1.08)}}

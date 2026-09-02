@@ -83,3 +83,9 @@ assert(styles.includes('.handDock{position:fixed'),'hand dock should stay attach
 assert(styles.includes('.handResourceStrip'),'hand resource HUD styling missing');
 assert(client.includes("${top?resources(p):''}"),'home banner should not duplicate the hand resource HUD');
 console.log('✓ resources stay visible with the fixed hand HUD');
+
+assert(client.includes('resourceCoachVisible')&&client.includes('Your Resources'),'new-player resource coach missing');
+assert(client.includes('dismissResourceCoach'),'resource coach dismissal missing');
+assert(styles.includes('.handResourceStrip .resourceChip b')&&styles.includes('color:#17140f!important'),'resource numbers should be black');
+assert(styles.includes('.resourceCoach')&&styles.includes('@keyframes resourceCoachPulse'),'resource coach highlight styling missing');
+console.log('✓ resource HUD uses black text and a dismissible new-player highlight');
