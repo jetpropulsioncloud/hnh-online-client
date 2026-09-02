@@ -89,3 +89,9 @@ assert(client.includes('dismissResourceCoach'),'resource coach dismissal missing
 assert(styles.includes('.handResourceStrip .resourceChip b')&&styles.includes('color:#17140f!important'),'resource numbers should be black');
 assert(styles.includes('.resourceCoach')&&styles.includes('@keyframes resourceCoachPulse'),'resource coach highlight styling missing');
 console.log('✓ resource HUD uses black text and a dismissible new-player highlight');
+
+assert(styles.includes('card typography quality pass'),'card typography quality pass missing');
+assert(styles.includes('.handCard p{min-height:0')&&styles.includes('line-height:1.48'),'hand card rules text needs comfortable line spacing');
+assert(styles.includes('.handCard .cardTop b{font-size:12px')&&styles.includes('text-wrap:balance'),'hand card titles need balanced wrapping');
+assert(styles.includes('.handCard .cardFrame{padding:9px 10px 10px}'),'hand cards need improved internal spacing');
+console.log('✓ hand cards use relaxed, readable typography');
