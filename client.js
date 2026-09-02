@@ -262,9 +262,9 @@
 
   function handPanel(){
     const pi=humanIndex(),p=game.players[pi];
-    if(game.mode==='ai'&&game.active===game.aiIndex)return `<section class="handDock">${tableFidgets()}<div class="handHeader"><div><span class="eyebrow">YOUR HAND</span><b>${p.hand.length} cards</b></div><div class="handResourceWrap ${resourceCoachVisible?'resourceCoachActive':''}">${resourceCoach()}<div class="handResourceStrip" onclick="UI.dismissResourceCoach()">${resources(p)}</div></div><span class="locked">Opponent turn</span></div><div class="handRow">${p.hand.map(c=>handCard(p,pi,c,false)).join('')}</div></section>`;
+    if(game.mode==='ai'&&game.active===game.aiIndex)return `<section class="handDock">${tableFidgets()}<div class="handHeader"><div><span class="eyebrow">YOUR HAND</span><b>${p.hand.length} cards</b></div><div class="handResourceWrap ${resourceCoachVisible?'resourceCoachActive':''}">${resourceCoach()}<div class="handResourceStrip" onclick="UI.dismissResourceCoach()">${resources(p)}</div></div><span class="locked">Opponent turn</span></div><div class="handRow">${p.hand.map((c,i)=>handCard(p,pi,c,false,i,p.hand.length)).join('')}</div></section>`;
     const owner=game.mode==='ai'?p:game.players[game.active],ownerPi=game.mode==='ai'?pi:game.active;
-    return `<section class="handDock">${tableFidgets()}<div class="handHeader"><div><span class="eyebrow">${game.mode==='ai'?'YOUR HAND':'ACTIVE HAND'}</span><b>${owner.hand.length} cards</b></div><div class="handResourceWrap ${resourceCoachVisible?'resourceCoachActive':''}">${resourceCoach()}<div class="handResourceStrip" onclick="UI.dismissResourceCoach()">${resources(owner)}</div></div><div class="deckCounters"><span>🎴 ${owner.fieldDeck.length}</span><span>🍂 ${owner.compost.length}</span></div></div>${game.phase==='Discard'?`<div class="discardNotice">Rest: discard down to 7 · choose ${owner.hand.length-7} more.</div>`:''}<div class="handRow">${owner.hand.map(c=>handCard(owner,ownerPi,c,true)).join('')}</div></section>`;
+    return `<section class="handDock">${tableFidgets()}<div class="handHeader"><div><span class="eyebrow">${game.mode==='ai'?'YOUR HAND':'ACTIVE HAND'}</span><b>${owner.hand.length} cards</b></div><div class="handResourceWrap ${resourceCoachVisible?'resourceCoachActive':''}">${resourceCoach()}<div class="handResourceStrip" onclick="UI.dismissResourceCoach()">${resources(owner)}</div></div><div class="deckCounters"><span>🎴 ${owner.fieldDeck.length}</span><span>🍂 ${owner.compost.length}</span></div></div>${game.phase==='Discard'?`<div class="discardNotice">Rest: discard down to 7 · choose ${owner.hand.length-7} more.</div>`:''}<div class="handRow">${owner.hand.map((c,i)=>handCard(owner,ownerPi,c,true,i,owner.hand.length)).join('')}</div></section>`;
   }
 
   function handArt(c){
@@ -272,7 +272,7 @@
     if(c.subtype==='Tool')return '🧰';if(c.subtype==='Reaction')return '⚡';if(c.subtype==='Supply')return '🎒';return '🍃';
   }
 
-  function handCard(p,pi,c,interactive){
+  function handCard(p,pi,c,interactive,index=0,count=1){
     let action='',dragClass='',dragAttrs='';
     if(interactive&&game.phase==='Discard'&&pi===game.active)action=`<button class="dangerBtn cardAction" onclick="UI.discard(${c.uid})">Discard</button>`;
     else if(interactive&&c.type==='Critter'&&game.phase==='Build'&&pi===game.active){
@@ -288,7 +288,8 @@
     }
     const subtype=c.type==='Critter'?`Muster — ${(c.musterClasses||[]).join(' · ')}`:c.subtype;
     const stats=c.type==='Critter'?`<div class="badgeRow handStats"><span>💪 ${c.might}</span><span>❤️ ${c.grit}</span></div>`:`<div class="costLine">${costText(c.cost)}</div>`;
-    return `<article class="gameCard handCard ${interactive?'':'lockedCard'}${dragClass}"${dragAttrs}><div class="artWindow handArt"><span>${handArt(c)}</span><small>${esc(subtype)}</small></div><div class="cardFrame"><div class="cardTop"><b>${esc(c.name)}</b>${c.advanced?'<span class="advancedTag">ADV</span>':''}</div>${stats}<p>${esc(c.text||'')}</p>${c.flags?.manual&&c.id!=='burrow_stores'?`<span class="manualTag">Manual: ${esc(c.flags.manual)}</span>`:''}${action}</div></article>`;
+    const mid=(count-1)/2,offset=index-mid,fanStyle=`--hand-i:${index};--hand-count:${count};--hand-offset:${offset};--hand-abs:${Math.abs(offset)};`;
+    return `<article class="gameCard handCard ${interactive?'':'lockedCard'}${dragClass}" style="${fanStyle}"${dragAttrs}><div class="artWindow handArt"><span>${handArt(c)}</span><small>${esc(subtype)}</small></div><div class="cardFrame"><div class="cardTop"><b>${esc(c.name)}</b>${c.advanced?'<span class="advancedTag">ADV</span>':''}</div>${stats}<p>${esc(c.text||'')}</p>${c.flags?.manual&&c.id!=='burrow_stores'?`<span class="manualTag">Manual: ${esc(c.flags.manual)}</span>`:''}${action}</div></article>`;
   }
 
   function blueprintPanel(){
