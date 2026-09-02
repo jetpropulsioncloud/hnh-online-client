@@ -324,3 +324,11 @@ body:has(.cardInspector.pinned) .sideDeckRail{
   .handCard .cardTop b{font-size:11px;line-height:1.15}
   .handCard p{font-size:8.6px;line-height:1.42;margin:5px 0}
 }
+
+
+/* ===== tactile SFX controls ===== */
+.audioControls{display:flex;align-items:center;gap:5px;padding:3px 6px;border:1px solid #c7b58d;border-radius:999px;background:rgba(255,248,229,.72)}
+.audioControls .sfxMute{padding:4px 5px;min-width:28px;border:0;background:transparent;color:#2d332c;box-shadow:none;font-size:14px;line-height:1}
+.audioControls .sfxMute:hover{transform:none;background:rgba(91,110,78,.1)}
+.audioControls .sfxVolume{width:72px;height:4px;accent-color:#627a54;cursor:pointer}
+@media(max-width:900px){.audioControls .sfxVolume{display:none}.audioControls{padding:2px 4px}}

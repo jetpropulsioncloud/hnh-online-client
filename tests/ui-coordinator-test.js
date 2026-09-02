@@ -95,3 +95,9 @@ assert(styles.includes('.handCard p{min-height:0')&&styles.includes('line-height
 assert(styles.includes('.handCard .cardTop b{font-size:12px')&&styles.includes('text-wrap:balance'),'hand card titles need balanced wrapping');
 assert(styles.includes('.handCard .cardFrame{padding:9px 10px 10px}'),'hand cards need improved internal spacing');
 console.log('✓ hand cards use relaxed, readable typography');
+
+assert(client.includes('tactile SFX v1')&&client.includes('window.HNH_SFX'),'SFX manager missing');
+assert(client.includes("pickup(){")&&client.includes("recruit(){")&&client.includes("build(){")&&client.includes("attack(){")&&client.includes("block(){")&&client.includes("resource(){")&&client.includes("hearth(){"),'core tactile SFX palette incomplete');
+assert(client.includes("localStorage.getItem(STORAGE_KEY)")&&client.includes('sfxVolume'),'SFX persistence or volume controls missing');
+assert(styles.includes('.audioControls')&&styles.includes('.sfxVolume'),'SFX control styling missing');
+console.log('✓ tactile SFX manager, event hooks, mute and volume controls present');
