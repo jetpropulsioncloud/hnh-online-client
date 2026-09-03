@@ -130,3 +130,9 @@ assert(styles.includes('Hearthstone-inspired hand fan')&&styles.includes('rotate
 assert(styles.includes('translateY(-34px) rotate(0deg) scale(1.12)'),'hovered hand card should rise and enlarge');
 assert(styles.includes('justify-content:center;align-items:flex-end'),'hand should be centered at the bottom of the tabletop');
 console.log('✓ Hearthstone-inspired overlapping hand fan and hover prominence');
+
+assert(styles.includes('hand fan viewport integrity'),'hand fan viewport integrity styles missing');
+assert(styles.includes('height:clamp(210px,29dvh,254px)'),'hand dock should reserve a real viewport-height budget');
+assert(styles.includes('height:min(196px,calc(100% - 32px))'),'hand cards should size to the actual hand row');
+assert(styles.includes('overflow-y:visible'),'raised hand cards should not be clipped by the hand row');
+console.log('✓ hand fan remains fully visible inside the no-scroll viewport');
